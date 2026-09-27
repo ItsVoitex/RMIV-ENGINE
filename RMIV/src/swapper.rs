@@ -1,5 +1,6 @@
 
-use crate::texture::{self, Texture};
+use crate::renderer::texture;
+use crate::renderer::texture::Texture;
 
 pub struct TextureSwapper{
         pub textures:Vec<Texture>

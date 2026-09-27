@@ -4,7 +4,7 @@ use glfw::{Context, Key::Space, fail_on_errors};
 use gl;
 use player::Player;
 mod scene;
-use rmiv_engine::engine;
+use rmiv_engine;
 /*
 max
 -921.6
@@ -26,47 +26,15 @@ fn main()
     let width = 2560;
     let height = 1440;
 
-    let mut engine = engine::Engine::init(width, height, "Zombie Dash");
-    
-    
-    /*let character_vertices: [f32; 20] = [
-     998.4,  575.1,  -1.0, 0.0, 0.0,
-     921.6,  575.1,  -1.0, 1.0, 0.0,
-     921.6,  504.9,  -1.0, 1.0, 1.0,
-     998.4,  504.9,  -1.0, 0.0, 1.0,
-    ];
-    */
-    let width = 76.8;
-    let height = 70.2;
-    let character_vertices: [f32; 20] = [
-        960.0+width/2.0,  540.0+height/2.0,  -0.1, 0.0, 0.0,
-        960.0-width/2.0,  540.0+height/2.0,  -0.1, 1.0, 0.0,
-        960.0-width/2.0,  540.0-height/2.0,  -0.1, 1.0, 1.0,
-        960.0+width/2.0,  540.0-height/2.0,  -0.1, 0.0, 1.0,
-        ];
-
-    let chindices: [u32; 6]= [
-        0,  1,  2,
-        0,  2,  3,
-    ];
-
-    let backround: [f32; 20] = [
-     1920.0, 1080.0,  0.0, 0.0, 0.0,
-        0.0, 1080.0,  0.0, 1.0, 0.0,
-        0.0,    0.0,  0.0, 1.0, 1.0,
-     1920.0,    0.0,  0.0, 0.0, 1.0,
-    ];
-    
-    
+    let mut App = rmiv_engine::App::new();
+    App.create_window(width, height, "Zombie Dash","hello");
+  
     
 
-    let baindices: [u32; 6]= [
-        0,  1,  2,
-        0,  2,  3,
-    ];
 
     
-
+        
+    let mut backround = rmiv_engine::Object::create(1920.0, 1080.0, 0.0, &["Assets/textures/backround.png"]);
     
     
     let mut Scene1 = scene::Scene::create();
@@ -74,7 +42,7 @@ fn main()
     let mut player = Player::create(
         76.6,70.2,-0.1,
         &["Assets/textures/zombie.png"]);
-    
+    player.object.x = -400.0;
     
 
 
@@ -85,32 +53,41 @@ fn main()
     
     let mut getkey = false;
 
-    while !engine.should_close(){
+    while !App.window_should_close("hello"){
         
+        App.update_events();
+        let delta_time = App.delta_time("hello");
+        if App.key_is_pressed("hello",rmiv_engine::Key::Space) 
+        {
+            getkey = true;
+        }
+        
+        if getkey{Scene1.move_all(&delta_time);}
+
+        player.moved(&mut App,&delta_time,"hello");
+        
+        Scene1.move_spikes();
+
         
 
-        engine.begin_drawing();
+        App.begin_drawing("hello");
         
-        
+        backround.draw();
         Scene1.draw();
 
         player.draw();
 
-        engine.end_drawing();
+        App.end_drawing("hello");
         
-        player.moved(&engine.window,&mut engine.delta_time,&mut current);
         
-        if engine.window.get_key(glfw::Key::Space) == glfw::Action::Press
-        {
-            getkey = true;
-        }
-        Scene1.move_spikes();
-        if getkey{Scene1.move_all(&mut engine.delta_time);}
+
+        
         
 
         
 
     }
+
 
 
 }

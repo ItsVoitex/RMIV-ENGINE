@@ -1,9 +1,9 @@
 use std::ffi::CString;
 use crate::swapper::TextureSwapper;
-use crate::texture::Texture;
-use crate::shader;
+use crate::renderer::texture::Texture;
+use crate::renderer::shader;
 use gl;
-use crate::mesh::Mesh;
+use crate::renderer::mesh::Mesh;
 
 
 
