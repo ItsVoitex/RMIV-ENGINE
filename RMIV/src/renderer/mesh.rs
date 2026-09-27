@@ -46,7 +46,7 @@ impl Mesh{
             ebo 
         }
     }
-    pub fn mesh_bind(&self)
+    pub fn bind(&self)
     {
         unsafe{gl::BindVertexArray(self.vao);}
     }

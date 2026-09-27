@@ -1,8 +1,6 @@
-use std::io::SeekFrom::Current;
 
-use glfw::{Context, GlfwReceiver, WindowEvent};
+use glfw::{GlfwReceiver, WindowEvent};
 
-use crate::application::app::App;
 pub struct Window 
 {
     pub window:glfw::PWindow,
@@ -16,7 +14,7 @@ impl Window
 {
     pub fn create(glfw:&mut glfw::Glfw,width:u32,height:u32,window_title:&str) -> Window
     {
-        let (mut window,_events) = glfw.create_window(width, height, window_title, glfw::WindowMode::Windowed).expect("failed to init window");
+        let (window,_events) = glfw.create_window(width, height, window_title, glfw::WindowMode::Windowed).expect("failed to init window");
         
 
         Window { 

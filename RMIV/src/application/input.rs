@@ -1,10 +1,9 @@
 use glfw::ffi;
-use std::os::raw::c_int;
 
 
 #[repr(i32)]
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+//#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Action {
     Release = ffi::GLFW_RELEASE,
     Press = ffi::GLFW_PRESS,
@@ -13,7 +12,7 @@ pub enum Action {
 
 #[repr(i32)]
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+//#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Key {
     Space = ffi::GLFW_KEY_SPACE,
     Apostrophe = ffi::GLFW_KEY_APOSTROPHE,

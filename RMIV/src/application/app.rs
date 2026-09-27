@@ -1,44 +1,32 @@
 use gl;
 use glfw::Context;
 
-use std::{collections::HashMap, ffi::{CString, c_void}};
-use crate::application::input::{Key,Action};
-use crate::application::window::{self, Window};
+use std::{collections::HashMap, ffi::c_void};
+use crate::{application::input::{Action, Key}, assetmanager::assetmanager::AssetManager};
+use crate::application::window::Window;
+use crate::renderer::Renderer;
 use glfw::{fail_on_errors};
 
-/*pub struct App {
-    window: Window,
-    time: Time,
-    input: Input,
-    renderer: Renderer,
-    assets: AssetManager,
-}
-    assest manager creates a hashmap of textures so they can be reused
-    window will conatin the events window and glfw
-    input will be the definitions for glfw mouse inputs
-    rednerer will be to abstract all open gl calls
-    */
 pub struct App
 {
     
     pub glfw:glfw::Glfw,
     pub window:HashMap<String,Window>,
+    pub renderer: Renderer,
+    pub assets: AssetManager,
 }
 
 impl App
 {
     pub fn new() -> App
     {
-        let mut glfw = glfw::init(fail_on_errors).unwrap();
+        let glfw = glfw::init(fail_on_errors).unwrap();
         
-        
-        
-        
-
-
         App {
             glfw, 
-            window:HashMap::new(), 
+            window:HashMap::new(),
+            renderer:Renderer::new(),
+            assets:AssetManager::new()
       
         }
         
@@ -56,7 +44,6 @@ impl App
             gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
             gl::Enable(gl::DEPTH_TEST);
         }
-        let last_time:f64 =  self.glfw.get_time();
         self.window.insert(window_id.to_string(), window);
         
 
@@ -73,7 +60,6 @@ impl App
     }
     pub fn window_should_close(&mut self,id:&str) ->bool
     {
-        //for when you have multiple windows
         if let Some(window) = self.window.get_mut(id)
         {
             return window.window.should_close();

@@ -1,7 +1,4 @@
 mod player;
-use std::ffi::{CString, c_void};
-use glfw::{Context, Key::Space, fail_on_errors};
-use gl;
 use player::Player;
 mod scene;
 use rmiv_engine;
@@ -26,64 +23,67 @@ fn main()
     let width = 2560;
     let height = 1440;
 
-    let mut App = rmiv_engine::App::new();
-    App.create_window(width, height, "Zombie Dash","hello");
-  
-    
+    let mut app = rmiv_engine::App::new();
+    app.create_window(width, height, "Zombie Dash","hello");
+    app.assets.load_shader();
 
+    
+    
 
     
         
-    let mut backround = rmiv_engine::Object::create(1920.0, 1080.0, 0.0, &["Assets/textures/backround.png"]);
+    let mut backround = rmiv_engine::Object::create(
+        &app.assets.load_texture_from_file("Assets/textures/backround.png","backround"),
+
+        &app.assets.load_mesh(1920.0, 1080.0, 0.0, "backround"),
+
+        "default"
+    );
+
     
-    
-    let mut Scene1 = scene::Scene::create();
-    Scene1.spawn_spikes();
+
+    let mut scene1 = scene::Scene::create();
+    scene1.spawn_spikes(&mut app.assets);
     let mut player = Player::create(
-        76.6,70.2,-0.1,
-        &["Assets/textures/zombie.png"]);
-    player.object.x = -400.0;
+        &app.assets.load_texture_from_file("Assets/textures/zombie.png","zombie"),
+        &app.assets.load_mesh(76.6, 70.2, -0.1, "player"),
+        "default"
+    );
+    player.object.position.x = -400.0;
     
 
 
-    let mut current = 0;
 
     
     
     
     let mut getkey = false;
 
-    while !App.window_should_close("hello"){
+    while !app.window_should_close("hello"){
         
-        App.update_events();
-        let delta_time = App.delta_time("hello");
-        if App.key_is_pressed("hello",rmiv_engine::Key::Space) 
+        app.update_events();
+        let delta_time = app.delta_time("hello");
+        if app.key_is_pressed("hello",rmiv_engine::Key::Space) 
         {
             getkey = true;
         }
         
-        if getkey{Scene1.move_all(&delta_time);}
+        if getkey{scene1.move_all(&delta_time);}
 
-        player.moved(&mut App,&delta_time,"hello");
+        player.moved(&mut app,&delta_time,"hello");
         
-        Scene1.move_spikes();
-
-        
-
-        App.begin_drawing("hello");
-        
-        backround.draw();
-        Scene1.draw();
-
-        player.draw();
-
-        App.end_drawing("hello");
-        
-        
+        scene1.move_spikes();
 
         
-        
 
+        app.begin_drawing("hello");
+        
+        backround.draw(&mut app);
+        scene1.draw(&mut app);
+
+        player.draw(&mut app);
+
+        app.end_drawing("hello");
         
 
     }
