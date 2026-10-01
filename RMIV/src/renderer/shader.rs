@@ -16,17 +16,19 @@ impl  Shader{
         layout (location = 1) in vec2 aTexCoord;
         out vec2 texCoord;
         uniform vec3 offset;
+        uniform vec3 scale;
         void main()
         {
-
-            vec3 position = aPos + offset;
-            position.x = position.x / 1920.0 * 2 - 1;
-            position.y = 1 - (position.y/1080.0) * 2;
+            vec3 position = aPos * scale;
+            position = position + offset;
+            position.x = position.x  / 960;
+            position.y = -position.y / 540 ;
             gl_Position = vec4(position, 1.0);
             texCoord = aTexCoord;
         }
         "#;
-
+        //position.x = position.x / 1920.0 * 2 - 1;
+        //position.y = 1 - (position.y/1080.0) * 2;
         const FRAGMENT_SOURCE:&str = r#"
         #version 330 core
         out vec4 FragColor;
@@ -148,7 +150,8 @@ impl  Shader{
         }
     }
 }
-/*impl Drop for Shader
+ 
+impl Drop for Shader
 {
     fn drop(&mut self)
     {
@@ -157,4 +160,3 @@ impl  Shader{
         }
     }
 }
-    */

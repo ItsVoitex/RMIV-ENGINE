@@ -1,18 +1,36 @@
+
+
 use glfw::ffi;
 
 
 #[repr(i32)]
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
-//#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Action {
     Release = ffi::GLFW_RELEASE,
     Press = ffi::GLFW_PRESS,
     Repeat = ffi::GLFW_REPEAT,
 }
 
+
 #[repr(i32)]
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
-//#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub enum MouseButton {
+    /// The left mouse button. A `MouseButtonLeft` alias is provided to improve clarity.
+    Button1 = ffi::GLFW_MOUSE_BUTTON_1,
+    /// The right mouse button. A `MouseButtonRight` alias is provided to improve clarity.
+    Button2 = ffi::GLFW_MOUSE_BUTTON_2,
+    /// The middle mouse button. A `MouseButtonMiddle` alias is provided to improve clarity.
+    Button3 = ffi::GLFW_MOUSE_BUTTON_3,
+    Button4 = ffi::GLFW_MOUSE_BUTTON_4,
+    Button5 = ffi::GLFW_MOUSE_BUTTON_5,
+    Button6 = ffi::GLFW_MOUSE_BUTTON_6,
+    Button7 = ffi::GLFW_MOUSE_BUTTON_7,
+    Button8 = ffi::GLFW_MOUSE_BUTTON_8,
+}
+
+#[repr(i32)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+
 pub enum Key {
     Space = ffi::GLFW_KEY_SPACE,
     Apostrophe = ffi::GLFW_KEY_APOSTROPHE,

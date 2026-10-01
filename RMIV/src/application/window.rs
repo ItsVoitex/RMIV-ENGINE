@@ -1,6 +1,8 @@
 
 use glfw::{GlfwReceiver, WindowEvent};
 
+use crate::{App};
+
 pub struct Window 
 {
     pub window:glfw::PWindow,
@@ -12,9 +14,15 @@ pub struct Window
 
 impl Window
 {
-    pub fn create(glfw:&mut glfw::Glfw,width:u32,height:u32,window_title:&str) -> Window
+    pub fn create(app:&mut App,width:u32,height:u32,window_title:&str) -> Window
     {
-        let (window,_events) = glfw.create_window(width, height, window_title, glfw::WindowMode::Windowed).expect("failed to init window");
+        if app.window.len() > 0 && let Some(ptr) = app.window.values_mut().next() && let Some((window,_events)) =  ptr.window.create_shared(width, height, window_title, glfw::WindowMode::Windowed)
+        {
+            print!("created shared context");
+            return Window { window, events: (_events), delta_time:0.0, last_time:0.0,current_time:0.0,};
+            
+        }
+        let (window,_events) = app.glfw.create_window(width, height, window_title, glfw::WindowMode::Windowed).expect("failed to window");
         
 
         Window { 

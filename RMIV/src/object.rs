@@ -1,7 +1,7 @@
 
-use crate::App;
-use glam::Vec2;
+use crate::{App};
 use glam::Vec3;
+
 
 
 
@@ -9,33 +9,48 @@ use glam::Vec3;
 pub struct Object
 {
     pub position:Vec3,
-    pub velocity:Vec2,
-    pub texture_id:String,
-    pub mesh_id:String,
-    pub shader_id:String,
+    pub scale:Vec3,
+    pub velocity:Vec3,
+    pub texture_id:u32,
+    pub shader_id:u32,
 }
 
 
 
 impl Object 
 {
-    pub fn create(texture_id:&str,mesh_id:&str,shader_id:&str) -> Object
+    pub fn create(texture_id:u32,length:f32,width:f32,depth:f32,shader_id:u32) -> Object
     {
         
         Object
         {
             position:glam::vec3(0.0, 0.0, 0.0),
-            velocity:glam::vec2(0.0, 0.0),
-            texture_id: texture_id.to_string(),
-            mesh_id: mesh_id.to_string(),
-            shader_id:shader_id.to_string(),
+            scale:glam::vec3(length, width, depth),
+            velocity:glam::vec3(0.0, 0.0,0.0),
+            texture_id: texture_id,
+            shader_id:shader_id,
         }
+    }
+    pub fn set_texture_id(&mut self,texture_id:u32)
+    {
+        self.texture_id = texture_id;
+    }
+    pub fn set_shader_id(&mut self,shader_id:u32)
+    {
+        self.shader_id = shader_id;
     }
     
     
-    pub fn draw(&mut self,app:&mut App)
+    pub fn draw(&mut self,app:&mut App,window_id:u32)
     {
-        app.renderer.draw_object(self,&mut app.assets);
+        if let Some(renderer) = app.renderer.get_mut(&window_id)
+        {
+            renderer.draw_object(self,&mut app.assets);
+        }
+        else {
+            panic!("failed to get window with id: {}",window_id);
+        } 
+        
     }
    
 

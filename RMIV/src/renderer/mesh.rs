@@ -51,17 +51,17 @@ impl Mesh{
         unsafe{gl::BindVertexArray(self.vao);}
     }
 }
-/*impl Drop for Mesh
+
+
+impl Drop for Mesh
 {
     fn drop(&mut self)
     {
         unsafe {
-            gl::DeleteBuffers(1, &self.vbo);
             gl::DeleteBuffers(1, &self.ebo);
+            gl::DeleteBuffers(1, &self.vbo);        
             gl::DeleteVertexArrays(1, &self.vao);
         }
+    
     }
 }
-*/
-
-

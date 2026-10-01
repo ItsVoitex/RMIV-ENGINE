@@ -17,7 +17,7 @@ impl Texture
                 image::open("Assets/textures/NoTexture.png").expect("hello") 
             },
         };
-        let img = img.flipv().into_rgba8();
+        let img = img.flipv().fliph().into_rgba8();
         let (iwidth,iheight) = img.dimensions();
         let data = img.as_raw();
         let mut texture = 0;
@@ -46,7 +46,7 @@ impl Texture
     }
 }
 
-/*impl Drop for Texture
+impl Drop for Texture
 {
     fn drop(&mut self)
     {
@@ -55,4 +55,4 @@ impl Texture
         }
     }
 }
-*/
+
