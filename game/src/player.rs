@@ -1,10 +1,9 @@
 
 
 
-use rmiv_engine::Object;
 
-use rmiv_engine;
-use rmiv_engine::{Key,App,MouseButton};
+use rmiv_engine::prelude::*;
+
 pub struct Player
 {
     pub object:Object,
@@ -29,7 +28,7 @@ impl Player
         }
     }
 
-    pub fn moved(&mut self,app:&mut App,delta_time:&f32,window_id:u32) 
+    pub fn moved<T>(&mut self,app:&mut App<T>,delta_time:&f32,window_id:u32) 
     {
        
         if self.is_jumping

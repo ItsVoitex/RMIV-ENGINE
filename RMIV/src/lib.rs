@@ -1,11 +1,12 @@
 
-pub mod managers;
+mod managers;
 pub mod application;
-pub mod renderer;
+mod renderer;
 pub mod object;
-pub mod swapper;
 
-pub use application::{app::App,window::Window};
-pub use {object::Object,swapper::TextureSwapper};
-pub use renderer::{Renderer,Mesh,Shader,Texture};
-pub use managers::{asset::AssetManager,input::Key,Action,MouseButton};
+
+pub mod prelude {
+    pub use crate::application::app::{App};
+    pub use crate::{object::Object};
+    pub use crate::managers::{asset::AssetManager,input::Key,Action,MouseButton};
+}

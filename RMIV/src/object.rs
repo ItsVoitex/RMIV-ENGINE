@@ -1,5 +1,5 @@
 
-use crate::{App};
+use crate::{application::App};
 use glam::Vec3;
 
 
@@ -41,7 +41,7 @@ impl Object
     }
     
     
-    pub fn draw(&mut self,app:&mut App,window_id:u32)
+    pub fn draw<T>(&mut self,app:&mut App<T>,window_id:u32)
     {
         if let Some(renderer) = app.renderer.get_mut(&window_id)
         {

@@ -3,26 +3,28 @@ use glam::u32;
 use glfw::Context;
 
 use std::{collections::HashMap, ffi::c_void};
-use crate::{Object, managers::{asset::AssetManager, input::{Action, Key,MouseButton}}};
+use crate::{object::Object, application::app, managers::{asset::AssetManager, input::{Action, Key,MouseButton}}};
 use crate::application::window::Window;
 use crate::renderer::Renderer;
 use glfw::{fail_on_errors};
 use std::mem;
 
-pub struct App
+
+pub struct App<T>
 {
     pub assets:AssetManager,
     pub renderer: HashMap<u32,Renderer>,
     pub window:HashMap<u32,Window>,
     pub glfw:glfw::Glfw,
     idcounter:u32,
-    functions:HashMap<String,fn(&mut App)>,
+    function:Option<fn(&mut App<T>) -> T>,
+    function1:Option<fn(&mut App<T>,&mut T)>,
     
 }
 
-impl App
+impl<T> App<T>
 {
-    pub fn new() -> App
+    pub fn new() -> App<T>
     {
         let glfw = glfw::init(fail_on_errors).unwrap();
         
@@ -32,14 +34,15 @@ impl App
             renderer:HashMap::new(),
             assets:AssetManager::new(),
             idcounter:0,
-            functions:HashMap::new()
+            function:None,
+            function1:None
       
         }
         
     }
-    pub fn create_window(&mut self,width:u32,height:u32,window_title:&str) -> &mut App
+    pub fn create_window(&mut self,width:u32,height:u32,window_title:&str) -> &mut App<T>
     {
-        let mut window = Window::create(self,width,height,window_title);
+        let mut window = Window::create::<T>(self,width,height,window_title);
         window.window.make_current();
         self.glfw.set_swap_interval(glfw::SwapInterval::Sync(0));
         gl::load_with(|symbol| {
@@ -77,30 +80,26 @@ impl App
             panic!("failed to find window with id {}" , window_id);
         }
     }
-    pub fn on_update(&mut self,function:fn(&mut App)) -> &mut App
+    pub fn add_startup_system(&mut self,function:fn(&mut App<T>) -> T) -> &mut App<T>
     {
-        self.functions.insert("update".to_string(), function);
+        self.function.insert(function);
         return self;
     }
-    pub fn on_startup(&mut self,function:fn(&mut App)) -> &mut App
+     pub fn add_update_system(&mut self,function:fn(&mut App<T>,state: &mut T)) -> &mut App<T>
     {
-        self.functions.insert("startup".to_string(), function);
+        self.function1.insert(function);
         return self;
     }
     pub fn run(&mut self)
     {
-        if let Some(func) = self.functions.get_mut("startup")
-        {
-                func(self);
-        }
-
+        let func = self.function.unwrap();
+        let mut func1 = func(self);
         while !self.window_should_close(0)
         {
             self.update_events();
-            if let Some(func2) = self.functions.get_mut("update")
-            {
-                    func2(self);
-            }
+            let func2 = self.function1.unwrap();
+            func2(self,&mut func1);
+
         }
     }
     pub fn delta_time(&mut self,id:u32) -> f32

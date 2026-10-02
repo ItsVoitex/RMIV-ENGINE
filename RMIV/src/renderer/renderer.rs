@@ -1,7 +1,7 @@
 use std::ffi::CString;
 
 
-use crate::{Mesh, Object, managers::asset::AssetManager};
+use crate::{renderer::Mesh, object::Object, managers::asset::AssetManager};
 
 
 

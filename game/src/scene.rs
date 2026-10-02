@@ -1,8 +1,4 @@
-
-use rmiv_engine::Object;
-
-use rmiv_engine::App;
-
+use rmiv_engine::prelude::*;
 
 pub struct Scene
 {
@@ -39,7 +35,7 @@ impl Scene
             
         }
     }
-    pub fn draw(&mut self,app:&mut App,windowid:u32)
+    pub fn draw<T>(&mut self,app:&mut App<T>,windowid:u32)
     {
         for i in 0..self.objects.len()
             {

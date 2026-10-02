@@ -1,7 +1,7 @@
 
 use glfw::{GlfwReceiver, WindowEvent};
 
-use crate::{App};
+use crate::{application::App};
 
 pub struct Window 
 {
@@ -14,7 +14,7 @@ pub struct Window
 
 impl Window
 {
-    pub fn create(app:&mut App,width:u32,height:u32,window_title:&str) -> Window
+    pub fn create<T>(app:&mut App<T>,width:u32,height:u32,window_title:&str) -> Window
     {
         if app.window.len() > 0 && let Some(ptr) = app.window.values_mut().next() && let Some((window,_events)) =  ptr.window.create_shared(width, height, window_title, glfw::WindowMode::Windowed)
         {
