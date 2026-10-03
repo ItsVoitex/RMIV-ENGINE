@@ -1,20 +1,22 @@
 # RMIV Engine
 
-RMIV Engine is a work-in-progress game engine written in Rust using OpenGL. there also is an example game built with the engine called **Zombie Dash**.
+**RMIV Engine** is a work-in-progress game engine written in Rust using OpenGL. 
+there is an example game built with the engine called **Zombie Dash** which you can check out below.
+
+# Disclaimer
+> The engine is still under development. Features, systems and structure are all subject to change
 
 
-> The engine is still under development. Features, systems and the structure are all subject to change
-
-
-Design Goals
+# Design Goals
 * **Versatile**: Offer a complete 2D and 3D feature set
 * **Simple**: Easy for newbies to pick up, but with the ability to use advanced features for more experienced users
 
 
 # SetUpGuide
 ```sh
-    git clone https://github.com/ItsVoitex/RMIV-ENGINE.git
-    cd RMIV-ENGINE
+
+git clone https://github.com/ItsVoitex/RMIV-ENGINE.git
+cd RMIV-ENGINE
 # for an optimised build
     cargo build --release
 # Build the entire workspace:
