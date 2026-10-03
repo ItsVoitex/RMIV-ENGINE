@@ -4,12 +4,15 @@ RMIV Engine is a work-in-progress game engine written in Rust using OpenGL. ther
 
 
 > The engine is still under development. Features, systems and the structure are all subject to change
-Design Goals
-    Versatile: Offer a complete 2D and 3D feature set
-    Simple: Easy for newbies to pick up, but with the ability to use advanced features for more experienced users
 
-```sh
+
+Design Goals
+* **Versatile**: Offer a complete 2D and 3D feature set
+* **Simple**: Easy for newbies to pick up, but with the ability to use advanced features for more experienced users
+
+
 # SetUpGuide
+```sh
     git clone https://github.com/ItsVoitex/RMIV-ENGINE.git
     cd RMIV-ENGINE
 # for an optimised build
