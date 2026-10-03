@@ -26,7 +26,7 @@ fn main()
     let mut app = App::new();
 
     app.create_window(width, height, "Zombie Dash");
-    app.create_window(width, height, "the best");
+    
 
     
     let default = app.load_default_shader();
@@ -156,14 +156,5 @@ fn main()
                 game_state = 3;
             }
         }
-      
-     
     }
-    while !app.window_should_close(1)
-        {
-            app.update_events();
-            app.begin_drawing(1);
-            app.queue_draw(vec![&backround,&player.object], 1);
-            app.end_drawing(1);
-        }
 }

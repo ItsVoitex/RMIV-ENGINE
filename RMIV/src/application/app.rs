@@ -141,9 +141,7 @@ impl App
         self.glfw.poll_events();
         for (_,window) in self.window.iter_mut()
         {
-            window.process_events();
-            
-            
+            window.process_events();  
         }
     
     }
