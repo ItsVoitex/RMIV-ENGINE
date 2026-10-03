@@ -13,7 +13,7 @@
 
 
 # SetUpGuide
-There is an example game built with the engine called **Zombie Dash** which you can check out below .
+There is an example game built with the engine called **Zombie Dash** which you can check out below.
 ```sh
 
 git clone https://github.com/ItsVoitex/RMIV-ENGINE.git
