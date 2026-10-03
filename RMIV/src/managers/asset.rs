@@ -27,7 +27,8 @@ impl AssetManager
             mesh_index:0
         }
     }
-    
+    //since this one is a little long pretty much it generates textures meshes or shaders returning an id
+    //it also checks if you use the same file path to prevent duplicate files from being loaded
     pub fn load_textured_mesh(&mut self,texture_path:&str,width:f32,height:f32,depth:f32) -> (u32,u32)
     {
         (self.load_texture_from_file(texture_path),self.load_mesh(width, height, depth))
@@ -105,7 +106,7 @@ impl AssetManager
             0,  1,  2,
             0,  2,  3,
         ];
-        self.meshes.insert(self.mesh_index, Mesh::gendata(vertices,indices));
+        self.meshes.insert(self.mesh_index, Mesh::gen_rectangle(vertices,indices));
         let temp = self.mesh_index;
         self.mesh_index += 1;
         return temp;

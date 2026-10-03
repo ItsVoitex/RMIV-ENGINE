@@ -7,8 +7,9 @@ pub struct Mesh{
     pub ebo:u32,
 }
 
+//generates vbo which store the verticies vao for how the vertices are layed out and ebo to generate meshes without duplicate verictes as some overlap
 impl Mesh{
-    pub fn gendata(vertices:[f32;20], indices:[u32;6]) -> Mesh
+    pub fn gen_rectangle(vertices:[f32;20], indices:[u32;6]) -> Mesh
     {
         let mut vbo = 0;
         unsafe {

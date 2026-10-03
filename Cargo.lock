@@ -336,11 +336,6 @@ dependencies = [
 name = "game"
 version = "0.1.0"
 dependencies = [
- "gl",
- "glam",
- "glfw",
- "image",
- "rand 0.10.3",
  "rmiv-engine",
 ]
 

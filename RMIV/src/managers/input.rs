@@ -1,7 +1,7 @@
 
 
 use glfw::ffi;
-
+//to define glfw input
 
 #[repr(i32)]
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
@@ -15,11 +15,11 @@ pub enum Action {
 #[repr(i32)]
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum MouseButton {
-    /// The left mouse button. A `MouseButtonLeft` alias is provided to improve clarity.
+
     Button1 = ffi::GLFW_MOUSE_BUTTON_1,
-    /// The right mouse button. A `MouseButtonRight` alias is provided to improve clarity.
+
     Button2 = ffi::GLFW_MOUSE_BUTTON_2,
-    /// The middle mouse button. A `MouseButtonMiddle` alias is provided to improve clarity.
+  
     Button3 = ffi::GLFW_MOUSE_BUTTON_3,
     Button4 = ffi::GLFW_MOUSE_BUTTON_4,
     Button5 = ffi::GLFW_MOUSE_BUTTON_5,

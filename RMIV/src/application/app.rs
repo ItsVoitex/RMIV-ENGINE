@@ -3,28 +3,26 @@ use glam::u32;
 use glfw::Context;
 
 use std::{collections::HashMap, ffi::c_void};
-use crate::{object::Object, application::app, managers::{asset::AssetManager, input::{Action, Key,MouseButton}}};
+use crate::{templates::object::Object, managers::{asset::AssetManager, input::{Action, Key,MouseButton}}};
 use crate::application::window::Window;
 use crate::renderer::Renderer;
 use glfw::{fail_on_errors};
 use std::mem;
 
 
-pub struct App<T>
+pub struct App
 {
     pub assets:AssetManager,
     pub renderer: HashMap<u32,Renderer>,
     pub window:HashMap<u32,Window>,
     pub glfw:glfw::Glfw,
     idcounter:u32,
-    function:Option<fn(&mut App<T>) -> T>,
-    function1:Option<fn(&mut App<T>,&mut T)>,
     
 }
 
-impl<T> App<T>
+impl App
 {
-    pub fn new() -> App<T>
+    pub fn new() -> App
     {
         let glfw = glfw::init(fail_on_errors).unwrap();
         
@@ -33,18 +31,16 @@ impl<T> App<T>
             window:HashMap::new(),
             renderer:HashMap::new(),
             assets:AssetManager::new(),
-            idcounter:0,
-            function:None,
-            function1:None
-      
+            idcounter:0,    
         }
         
     }
-    pub fn create_window(&mut self,width:u32,height:u32,window_title:&str) -> &mut App<T>
+    //makes a window and creates an open gl context and a renderer for it need to add resizing for windows
+    pub fn create_window(&mut self,width:u32,height:u32,window_title:&str) -> &mut App
     {
-        let mut window = Window::create::<T>(self,width,height,window_title);
+        let mut window = Window::create(self,width,height,window_title);
         window.window.make_current();
-        self.glfw.set_swap_interval(glfw::SwapInterval::Sync(0));
+        self.glfw.set_swap_interval(glfw::SwapInterval::Sync(1));
         gl::load_with(|symbol| {
             window.window.get_proc_address(symbol)
             .map_or(std::ptr::null(), |f| f as *const c_void)
@@ -60,6 +56,7 @@ impl<T> App<T>
         self.idcounter += 1;
         self
     }
+    //makes calls to the renderer
     pub fn queue_draw(&mut self,objects:Vec<&Object>,window_id:u32) 
     {
         if let Some(render) = self.renderer.get_mut(&window_id)
@@ -80,28 +77,9 @@ impl<T> App<T>
             panic!("failed to find window with id {}" , window_id);
         }
     }
-    pub fn add_startup_system(&mut self,function:fn(&mut App<T>) -> T) -> &mut App<T>
-    {
-        self.function.insert(function);
-        return self;
-    }
-     pub fn add_update_system(&mut self,function:fn(&mut App<T>,state: &mut T)) -> &mut App<T>
-    {
-        self.function1.insert(function);
-        return self;
-    }
-    pub fn run(&mut self)
-    {
-        let func = self.function.unwrap();
-        let mut func1 = func(self);
-        while !self.window_should_close(0)
-        {
-            self.update_events();
-            let func2 = self.function1.unwrap();
-            func2(self,&mut func1);
-
-        }
-    }
+    
+    
+    //calculates the frame time (duration between frames) to act as a constant for actions such as moving objects positions
     pub fn delta_time(&mut self,id:u32) -> f32
     {
         if let Some(window) = self.window.get_mut(&id)
@@ -112,6 +90,8 @@ impl<T> App<T>
             panic!("unable to find window with id: {}",id);
         }
     }
+
+    //checks if window has been closed kind of self explanatory
     pub fn window_should_close(&mut self,id:u32) ->bool
     {
         if let Some(window) = self.window.get_mut(&id)
@@ -124,9 +104,11 @@ impl<T> App<T>
         
     }
 
-    pub fn begin_drawing(&mut self,id:u32)
+
+    //resets buffers and selets the specified window to being drawing to
+    pub fn begin_drawing(&mut self,window_id:u32)
     {
-        if let Some(window) = self.window.get_mut(&id)
+        if let Some(window) = self.window.get_mut(&window_id)
         {
             window.window.make_current();
             unsafe {
@@ -134,26 +116,31 @@ impl<T> App<T>
             }
         }
         else{
-            println!("unable to find window with id {}",id);
+            println!("unable to find window with id {}",window_id);
         }
         
     }
-    pub fn end_drawing(&mut self,id:u32)
+    //swaps the previous frame with the new frame
+    pub fn end_drawing(&mut self,window_id:u32)
     {
-        if let Some(window) = self.window.get_mut(&id)
+        if let Some(window) = self.window.get_mut(&window_id)
         {
             window.window.swap_buffers();
         }
         else{
-            println!("unable to find window with id: {}",id); 
+            println!("unable to find window with id: {}",window_id); 
         }
         
     }
+
     pub fn update_events(&mut self)
     {
         self.glfw.poll_events();
     }
      
+
+
+    //use for input takes window id as paramter
     fn get_mouse(&self,window_id:u32, button: MouseButton) -> Action
     {
         if let Some(window) = self.window.get(&window_id)
@@ -235,6 +222,9 @@ impl<T> App<T>
         }
     }
 
+
+
+    //makes calls to the asset manager
     pub fn load_textured_mesh(&mut self,texture_path:&str,width:f32,height:f32,depth:f32,window_id:u32) -> (u32,u32)
     {
         if let Some(window) = self.window.get_mut(&window_id)
@@ -247,9 +237,6 @@ impl<T> App<T>
         }
         
     }
-
-   
-    
     pub fn load_texture_from_file(&mut self,texture_path:&str) -> u32
     {
         self.assets.load_texture_from_file(texture_path, )

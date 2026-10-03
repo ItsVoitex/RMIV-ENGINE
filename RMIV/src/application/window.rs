@@ -14,7 +14,8 @@ pub struct Window
 
 impl Window
 {
-    pub fn create<T>(app:&mut App<T>,width:u32,height:u32,window_title:&str) -> Window
+    //creates a window using glfw 
+    pub fn create(app:&mut App,width:u32,height:u32,window_title:&str) -> Window
     {
         if app.window.len() > 0 && let Some(ptr) = app.window.values_mut().next() && let Some((window,_events)) =  ptr.window.create_shared(width, height, window_title, glfw::WindowMode::Windowed)
         {
@@ -33,7 +34,7 @@ impl Window
             current_time:0.0,
         }
     }
-
+    //calculates frame time for the specific window
     pub fn delta_time(&mut self,current_time:f64) ->f32
     {
         self.current_time = current_time;

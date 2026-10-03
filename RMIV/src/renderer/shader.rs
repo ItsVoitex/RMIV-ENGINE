@@ -10,6 +10,7 @@ impl  Shader{
 
     pub fn create() -> Shader
     {
+        //may be possible to do these calculations on the cpu
         const VERTEX_SOURCE:&str = r#"
         #version 330 core
         layout (location = 0) in vec3 aPos;
@@ -22,13 +23,11 @@ impl  Shader{
             vec3 position = aPos * scale;
             position = position + offset;
             position.x = position.x  / 960;
-            position.y = -position.y / 540 ;
+            position.y = position.y / 540 ;
             gl_Position = vec4(position, 1.0);
             texCoord = aTexCoord;
         }
         "#;
-        //position.x = position.x / 1920.0 * 2 - 1;
-        //position.y = 1 - (position.y/1080.0) * 2;
         const FRAGMENT_SOURCE:&str = r#"
         #version 330 core
         out vec4 FragColor;
@@ -65,6 +64,7 @@ impl  Shader{
             let mut success = 0;
             gl::GetShaderiv(fragment_shader, gl::COMPILE_STATUS, &mut success);
             let mut info_log:[i8;512] = [0;512];
+            //need to add proper error reporting
             if success == 0
             {
                 gl::GetShaderInfoLog(vertex_shader, 512,std::ptr::null_mut(),info_log.as_mut_ptr());
@@ -78,6 +78,7 @@ impl  Shader{
             gl::LinkProgram(shader_program);
 
             gl::GetProgramiv(shader_program, gl::LINK_STATUS, &mut success);
+            //need to add proper error reporting
             if success == 0
             {
                 println!("failed to link shaders");

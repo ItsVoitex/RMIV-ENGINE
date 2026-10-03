@@ -1,7 +1,7 @@
 use std::ffi::CString;
 
 
-use crate::{renderer::Mesh, object::Object, managers::asset::AssetManager};
+use crate::{renderer::Mesh, templates::object::Object, managers::asset::AssetManager};
 
 
 
@@ -20,11 +20,12 @@ impl Renderer
 {
     pub fn new()-> Renderer
     {
+        //binds default mesh to be used and sent to the gpu
          let vertices: [f32; 20] = [
-            0.5,   0.5,    0.5,  0.0, 0.0,
-           -0.5,   0.5,    0.5,  1.0, 0.0,
-           -0.5,  -0.5,    0.5,  1.0, 1.0,
-            0.5,  -0.5,    0.5,  0.0, 1.0,
+            0.5,   -0.5,    0.5,  0.0, 0.0,
+           -0.5,   -0.5,    0.5,  1.0, 0.0,
+           -0.5,  0.5,    0.5,  1.0, 1.0,
+            0.5,  0.5,    0.5,  0.0, 1.0,
         ];
         let indices: [u32; 6]= 
         [
@@ -35,7 +36,7 @@ impl Renderer
             texture_name:CString::new("texture1").unwrap(),
             offset_name:CString::new("offset").unwrap(),
             scale_name:CString::new("scale").unwrap(),
-            mesh:Mesh::gendata(vertices, indices),
+            mesh:Mesh::gen_rectangle(vertices, indices),
             notextureid:0
         }
         
@@ -43,6 +44,7 @@ impl Renderer
 
     pub fn draw_object(&mut self,object:&mut Object,assetmanager:&mut AssetManager)
     {
+        //when there is no texture kind of obvious need to implement an alternative instead of a file
         if self.notextureid == 0
         {
             self.notextureid = assetmanager.load_texture_from_file("Assets/textures/NoTexture.png");
@@ -63,6 +65,7 @@ impl Renderer
         };
         
         unsafe {
+            //binds textures shaders meshes and send the object data to the gpu
             shader.use_program();
             mesh.bind();
             let offset_location = gl::GetUniformLocation(shader.id,self.offset_name.as_ptr());
@@ -78,6 +81,7 @@ impl Renderer
     }
     pub fn draw_objects(&mut self,assets:&mut AssetManager,objects:Vec<&Object>)
     {
+        //draws multiple objects instead of one
         for object in objects.iter()
         {
             if self.notextureid == 0

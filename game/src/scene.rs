@@ -1,4 +1,8 @@
+
+
 use rmiv_engine::prelude::*;
+
+
 
 pub struct Scene
 {
@@ -35,7 +39,7 @@ impl Scene
             
         }
     }
-    pub fn draw<T>(&mut self,app:&mut App<T>,windowid:u32)
+    pub fn draw(&mut self,app:&mut App,windowid:u32)
     {
         for i in 0..self.objects.len()
             {
@@ -48,6 +52,13 @@ impl Scene
     }
 
 
+    pub fn reset(&mut self)
+    {
+        for i in (0..self.objects.len()).rev()
+        {
+            self.objects.swap_remove(i);
+        }
+    }
 
 
     pub fn spawn_spikes(&mut self,spike_id:u32)
@@ -56,7 +67,7 @@ impl Scene
         let mut offset = 960.0;
         for i in (0..self.objects.len()).rev()
         {
-            if self.objects[i].position.x < -960.0
+            if self.objects[i].position.x < -1000.0
             {
                 self.objects.swap_remove(i);
             }
@@ -76,8 +87,9 @@ impl Scene
                     {
                         offset += 115.2;
                         let mut object = Object::create(spike_id,76.8*1.5, 70.0*1.3, -0.5, 0);
+                        object.set_hitbox(76.8, 70.09, -0.5);
                         object.position.x += offset;
-                        object.position.y = 520.0;
+                        object.position.y = -520.0;
                         self.objects.push(object);
                     }
                     
