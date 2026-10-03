@@ -2,6 +2,7 @@ use gl;
 use glam::u32;
 use glfw::Context;
 
+
 use std::{collections::HashMap, ffi::c_void};
 use crate::{templates::object::Object, managers::{asset::AssetManager, input::{Action, Key,MouseButton}}};
 use crate::application::window::Window;
@@ -39,12 +40,14 @@ impl App
     pub fn create_window(&mut self,width:u32,height:u32,window_title:&str) -> &mut App
     {
         let mut window = Window::create(self,width,height,window_title);
+        
         window.window.make_current();
         self.glfw.set_swap_interval(glfw::SwapInterval::Sync(1));
         gl::load_with(|symbol| {
             window.window.get_proc_address(symbol)
             .map_or(std::ptr::null(), |f| f as *const c_void)
         });
+        window.window.set_framebuffer_size_polling(true);
         unsafe {
             gl::Enable(gl::BLEND);
             gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
@@ -136,6 +139,13 @@ impl App
     pub fn update_events(&mut self)
     {
         self.glfw.poll_events();
+        for (_,window) in self.window.iter_mut()
+        {
+            window.process_events();
+            
+            
+        }
+    
     }
      
 

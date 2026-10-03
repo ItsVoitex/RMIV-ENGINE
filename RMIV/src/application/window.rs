@@ -19,9 +19,7 @@ impl Window
     {
         if app.window.len() > 0 && let Some(ptr) = app.window.values_mut().next() && let Some((window,_events)) =  ptr.window.create_shared(width, height, window_title, glfw::WindowMode::Windowed)
         {
-            print!("created shared context");
-            return Window { window, events: (_events), delta_time:0.0, last_time:0.0,current_time:0.0,};
-            
+            return Window { window, events: (_events), delta_time:0.0, last_time:0.0,current_time:0.0,};   
         }
         let (window,_events) = app.glfw.create_window(width, height, window_title, glfw::WindowMode::Windowed).expect("failed to window");
         
@@ -42,6 +40,30 @@ impl Window
         self.last_time = self.current_time;
         return self.delta_time;
     }
-
+    pub fn process_events(&mut self) -> bool
+    {
+    
+        for (_,events) in glfw::flush_messages(&self.events)
+        {
+            match events {
+                glfw::WindowEvent::FramebufferSize(width,height ) => 
+                {
+                    unsafe {
+                        gl::Viewport(0, 0, width, height);
+                        return false;
+                    }
+                },
+                glfw::WindowEvent::Key(glfw::Key::Escape,_ ,glfw::Action::Press ,_ ) =>
+                {
+                    self.window.set_should_close(true);
+                    return true;
+                },
+                glfw::WindowEvent::Close => {self.window.set_should_close(true);return true},
+                _ => {return false;}
+            }
+        }
+        return false;
+    }
    
 }
+

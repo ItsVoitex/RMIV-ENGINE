@@ -26,6 +26,7 @@ fn main()
     let mut app = App::new();
 
     app.create_window(width, height, "Zombie Dash");
+    app.create_window(width, height, "the best");
 
     
     let default = app.load_default_shader();
@@ -46,6 +47,7 @@ fn main()
     );
     player.object.set_hitbox(50.0, 50.0, 5.0);
     player.object.position.x = -400.0;
+    player.object.position.y = -500.0;
     
     
     
@@ -53,7 +55,7 @@ fn main()
     let title_id = app.load_texture_from_file("Assets/textures/ZombieDash.png");
     let mut title = Object::create(
         title_id,
-        1000.0, 600.0, -0.6,
+        1200.0, 700.0, -0.6,
         default
     );
     
@@ -86,19 +88,19 @@ fn main()
         {
             break;
         }
-
         while game_state == 0 && !app.window_should_close(0)
         {
-            app.update_events();
-            let delta_time = app.delta_time(0);
             if app.key_is_pressed(0,Key::Space) 
             {
                 getkey = true;
             }
+            app.update_events();
+            let delta_time = app.delta_time(0);
+            
         
             if getkey{scene1.move_all(&delta_time);}
         
-            player.moved(&mut app,&delta_time,0);
+            if getkey{player.moved(&mut app,&delta_time,0)};
         
         
             scene1.spawn_spikes(spike_id);
@@ -111,7 +113,10 @@ fn main()
             if !getkey{app.draw(&mut title,0);};
 
             app.end_drawing(0);
+            
+
             if player.object.check_collision(&scene1.objects,false) {game_state = 1};
+
 
         }
 
@@ -129,21 +134,36 @@ fn main()
             }
         }
         while game_state == 2 && !app.window_should_close(0){
+            player.object.position.x = -400.0;
+            player.object.position.y = -500.0;
             app.update_events();
             app.begin_drawing(0);
             app.draw(&mut choice, 0);
             app.end_drawing(0);
             if app.key_is_pressed(0, Key::Y)
             {
+                scene1.checkleveldat();
                 scene1.reset();
                 getkey = false;
-                game_state = 0
+                player.object.position.x = -400.0;
+                player.object.position.y = -500.0;
+                game_state = 0;
+                break;
             }
             if app.key_is_pressed(0, Key::N)
             {
+                
                 game_state = 3;
             }
         }
+      
      
     }
+    while !app.window_should_close(1)
+        {
+            app.update_events();
+            app.begin_drawing(1);
+            app.queue_draw(vec![&backround,&player.object], 1);
+            app.end_drawing(1);
+        }
 }

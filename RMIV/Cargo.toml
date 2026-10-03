@@ -6,6 +6,5 @@ edition = "2024"
 [dependencies]
 glfw = "0.63.0"
 gl = "0.14"
-rand = "0.10.3"
 glam = "0.33.12"
 image = "0.25"
