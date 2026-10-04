@@ -37,7 +37,6 @@ impl AssetManager
     {
         if let Some(_id) = self.used_paths.get(texture_path)
         {
-                println!("this texture has already been loaded");
                 return *_id;
         }
         

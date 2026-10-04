@@ -59,7 +59,7 @@ fn main()
         default
     );
     
-    let choice_id = app.assets.load_texture_from_file("Assets/textures/playagain?.png");
+    let choice_id = app.assets.load_texture_from_file("Assets/textures/playagain.png");
     let mut choice = Object::create(
         choice_id,
         1920.0,300.0,-0.6,
@@ -80,7 +80,6 @@ fn main()
     
     let mut getkey = false;
     let mut game_state = 0;
-
 
     while !app.window_should_close(0)
     {
@@ -107,12 +106,12 @@ fn main()
         
             app.begin_drawing(0);
         
-            app.queue_draw( vec![&backround,&player.object],0);
-            scene1.draw(&mut app,0);
+            app.queue_draw( vec![&backround,&player.object]);
+            scene1.draw(&mut app);
 
-            if !getkey{app.draw(&mut title,0);};
+            if !getkey{app.draw(&mut title);};
 
-            app.end_drawing(0);
+            app.end_drawing();
             
 
             if player.object.check_collision(&scene1.objects,false) {game_state = 1};
@@ -126,8 +125,8 @@ fn main()
         {
             app.update_events();
             app.begin_drawing(0);
-            app.draw(&mut over, 0);
-            app.end_drawing(0);
+            app.draw(&mut over);
+            app.end_drawing();
             if app.key_is_pressed(0, Key::H)
             {
                 game_state = 2;
@@ -138,8 +137,8 @@ fn main()
             player.object.position.y = -500.0;
             app.update_events();
             app.begin_drawing(0);
-            app.draw(&mut choice, 0);
-            app.end_drawing(0);
+            app.draw(&mut choice);
+            app.end_drawing();
             if app.key_is_pressed(0, Key::Y)
             {
                 scene1.checkleveldat();
@@ -157,4 +156,5 @@ fn main()
             }
         }
     }
+    
 }

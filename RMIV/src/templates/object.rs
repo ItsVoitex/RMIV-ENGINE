@@ -1,7 +1,4 @@
 
-use crate::{application::App};
-use glam::Vec3;
-
 use crate::prelude::*;
 
 
@@ -76,21 +73,6 @@ impl Object
         }
 
     }
-    
-    pub fn draw(&mut self,app:&mut App,window_id:u32)
-    {
-        if let Some(renderer) = app.renderer.get_mut(&window_id)
-        {
-            renderer.draw_object(self,&mut app.assets);
-        }
-        else {
-            panic!("failed to get window with id: {}",window_id);
-        } 
-        
-    }
-   
-
-   
    
 }
 /*two object collision

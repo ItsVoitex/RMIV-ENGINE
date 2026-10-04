@@ -39,11 +39,11 @@ impl Scene
             
         }
     }
-    pub fn draw(&mut self,app:&mut App,windowid:u32)
+    pub fn draw(&mut self,app:&mut App)
     {
         for i in 0..self.objects.len()
             {
-                app.draw(&mut self.objects[i], windowid);
+                app.draw(&mut self.objects[i]);
             }
     }
     pub fn checkleveldat(&mut self)
