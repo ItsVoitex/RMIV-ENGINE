@@ -182,9 +182,11 @@ impl App
         {
             match window {
                 Some(wind) =>{
+                    wind.window.make_current();
                     wind.window.swap_buffers();
+                    self.window.window.make_current();
                 },
-                None => return
+                None => {self.window.window.make_current();return}
             }
         }
         else{
@@ -210,6 +212,7 @@ impl App
             }
             
         }
+        self.window.window.make_current();
                
         
         for i in remove_queue.iter()
