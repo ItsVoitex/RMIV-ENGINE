@@ -1,5 +1,5 @@
 
-use glfw::{Context, GlfwReceiver, WindowEvent};
+use glfw::{Context, GlfwReceiver, Monitor, WindowEvent};
 
 use crate::application::{App};
 
@@ -11,6 +11,7 @@ pub struct Window
     last_time:f64,
     current_time:f64,
     pub frame_buffer:(i32,i32),
+    pub windinfo:(i32,i32,bool,bool),
     is_primary:bool,
 }
 
@@ -19,16 +20,31 @@ impl Window
     //creates a window using glfw 
     pub fn create(app:&mut App,width:u32,height:u32,window_title:&str) -> Window
     {
-
+        let mode;
+        let monitor;
+        unsafe {
+            monitor = glfw::ffi::glfwGetPrimaryMonitor();
+            mode = glfw::ffi::glfwGetVideoMode(monitor);
+        }
         let (window,_events) = app.glfw.create_window(width, height, window_title, glfw::WindowMode::Windowed).expect("failed to create primary window");
-
+        unsafe {
+            
+            glfw::ffi::glfwSetWindowMonitor(window.window_ptr(), monitor, 0, 0, (*mode).width, (*mode).height, (*mode).refreshRate);
+            
+        }
+        let mut width:std::ffi::c_int = 0;
+        let mut height:std::ffi::c_int = 0;
+        unsafe {
+            glfw::ffi::glfwGetFramebufferSize(window.window_ptr(), &mut width, &mut height);
+        }
         Window { 
             window, 
             events: (_events), 
             delta_time:0.0,
             last_time:0.0,
             current_time:0.0,
-            frame_buffer:(1920,1080),
+            frame_buffer:(width,height),
+            windinfo:(width as i32,height as i32,false,false),
             is_primary:false
         }
     }
@@ -45,7 +61,12 @@ impl Window
         
          if let Some((window,_events)) =  app.window.window.create_shared(width, height, window_title, glfw::WindowMode::Windowed)
             {
-                return Window { window, events: (_events), delta_time:0.0,last_time:0.0,current_time:0.0,frame_buffer:(1920,1080),is_primary:false};    
+                let mut width:std::ffi::c_int = 0;
+                let mut height:std::ffi::c_int = 0;
+                unsafe {
+                    glfw::ffi::glfwGetFramebufferSize(window.window_ptr(), &mut width, &mut height);
+                }
+                return Window { window, events: (_events), delta_time:0.0,last_time:0.0,current_time:0.0,frame_buffer:(width,height),is_primary:false,windinfo:(width as i32,height as i32,false,false)};    
             }
             else {
                 panic!("failed to create shared window");
@@ -63,7 +84,8 @@ impl Window
             last_time:0.0,
             current_time:0.0,
             frame_buffer:(0,0),
-            is_primary:true
+            is_primary:true,
+            windinfo:(0,0,false,false),
         }
     }
     pub fn process_events(&mut self) -> bool
@@ -79,6 +101,7 @@ impl Window
                     self.window.set_should_close(true);
                     should_remove = true;
                 },
+    
                 glfw::WindowEvent::Close => {self.window.set_should_close(true);should_remove = true},
 
                 glfw::WindowEvent::FramebufferSize(width,height ) => 

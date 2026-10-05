@@ -31,11 +31,11 @@ impl Scene
             lines:Vec::new(),
         }
     }
-    pub fn move_all(&mut self,delta_time:&f32)
+    pub fn move_all(&mut self,delta_time:&f32,speed:f32)
     {
         for j in 0..self.objects.len()
         {
-            self.objects[j].position.x -= 800.0 * *delta_time;
+            self.objects[j].position.x -= speed * *delta_time;
             
         }
     }

@@ -1,9 +1,9 @@
 use gl;
 use glam::u32;
-use glfw::{fail_on_errors,Context};
+use glfw::{Context, fail_on_errors, ffi::GLFW_PLATFORM_NULL};
 
 
-use std::{collections::HashMap, ffi::c_void};
+use std::{collections::HashMap, ffi::c_void, ptr};
 use crate::{managers::{asset::AssetManager, input::{Action, Key,MouseButton}}, templates::object::Object};
 use crate::application::window::Window;
 use crate::renderer::Renderer;
@@ -22,6 +22,30 @@ pub struct App
     
 }
 
+pub fn toggle_fullscreen(wind:&mut Window)
+{
+        unsafe {
+            let monitor = glfw::ffi::glfwGetPrimaryMonitor();
+            let mode= glfw::ffi::glfwGetVideoMode(monitor);
+           
+            
+            let pressed = glfw::ffi::GLFW_PRESS == glfw::ffi::glfwGetKey(wind.window.window_ptr(),glfw::ffi::GLFW_KEY_F11 as std::os::raw::c_int);
+            if pressed && wind.windinfo.2 == true && !wind.windinfo.3
+            {
+                glfw::ffi::glfwSetWindowMonitor(wind.window.window_ptr(),ptr::null_mut(), (*mode).width-wind.windinfo.0 / 2, (*mode).height-wind.windinfo.1 / 2, wind.windinfo.0, wind.windinfo.1, 0);
+                wind.windinfo.2 = false;
+  
+            }
+            else {if pressed && wind.windinfo.2 == false && !wind.windinfo.3 {
+                glfw::ffi::glfwSetWindowMonitor(wind.window.window_ptr(), monitor, 0, 0, (*mode).width, (*mode).height, (*mode).refreshRate);
+                wind.windinfo.2 = true;
+     
+            }}
+            
+            wind.windinfo.3 = pressed;
+        }
+        
+}
 impl App
 {
     pub fn new() -> App
@@ -151,6 +175,22 @@ impl App
         }
         
     }
+    pub fn close_window(&mut self,id:u32) 
+    {
+        if let Some(window) = self.windows.get_mut(&id)
+        {
+            match window {
+                Some(wind) =>{
+                    wind.window.set_should_close(true);return;
+                },
+                None => return
+            }
+        }
+        else {
+            panic!("no window with that id");
+        }
+        
+    }
 
 
     //resets buffers and selets the specified window to being drawing to
@@ -194,15 +234,19 @@ impl App
         }
         
     }
+    
 
     pub fn update_events(&mut self)
     {
+        
         let mut remove_queue: Vec<u32> = Vec::new();
         self.glfw.poll_events();
         for (index,window) in self.windows.iter_mut()
-        {
+        {   
             match window {
                 Some(wind) =>{
+                    
+                    toggle_fullscreen(wind);
                     if wind.process_events() || wind.window.should_close()
                     {
                         remove_queue.push(index.clone());
@@ -274,11 +318,11 @@ impl App
             return  false;
         }
     }
-    fn get_key(&self,window_id:u32, key: Key) -> Option<Action> {
+    fn get_key(&self,window_id:u32, Key: Key) -> Option<Action> {
         if let Some(window) = self.windows.get(&window_id)
         {
             match window {
-                Some(wind) => unsafe { std::mem::transmute(glfw::ffi::glfwGetKey(wind.window.window_ptr(), key as std::os::raw::c_int)) }
+                Some(wind) => unsafe { std::mem::transmute(glfw::ffi::glfwGetKey(wind.window.window_ptr(), Key as std::os::raw::c_int)) }
                 None=> None,
             }
         }
@@ -286,9 +330,9 @@ impl App
             panic!("unable to find window with id: {}",window_id); 
         }
     }
-    pub fn key_is_pressed(&self,window_id:u32, key: Key) -> bool
+    pub fn key_is_pressed(&self,window_id:u32, Key: Key) -> bool
     {
-        if (self.get_key(window_id,key)) == Some(Action::Press)
+        if (self.get_key(window_id,Key)) == Some(Action::Press)
         {
             return true;
         }
@@ -296,9 +340,9 @@ impl App
             return  false;
         }
     }
-    pub fn key_is_released(&self,window_id:u32, key: Key) -> bool
+    pub fn key_is_released(&self,window_id:u32, Key: Key) -> bool
     {
-        if (self.get_key(window_id,key)) == Some(Action::Release)
+        if (self.get_key(window_id,Key)) == Some(Action::Release)
         {
             return true;
         }
@@ -306,9 +350,9 @@ impl App
             return  false;
         }
     }
-    pub fn key_is_repeated(&self,window_id:u32, key: Key) -> bool
+    pub fn key_is_repeated(&self,window_id:u32, Key: Key) -> bool
     {
-        if (self.get_key(window_id,key)) == Some(Action::Repeat)
+        if (self.get_key(window_id,Key)) == Some(Action::Repeat)
         {
             return true;
         }

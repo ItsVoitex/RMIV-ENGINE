@@ -24,7 +24,6 @@ fn main()
     let height = 1080;
     
     let mut app = App::new();
-
     app.create_window(width, height, "Zombie Dash");
     
 
@@ -81,6 +80,40 @@ fn main()
     let mut getkey = false;
     let mut game_state = 0;
 
+    let mut speed = 800.0;
+
+    let diff_id = app.load_texture_from_file("Assets/textures/difficulty.png");
+    let mut diff = Object::create(
+        diff_id,
+        1920.0,500.0,-0.6,
+        default
+    );
+    app.create_window(1920, 540, "Choose difficulty");
+    
+    while !app.window_should_close(1)
+    {
+        app.update_events();
+        app.begin_drawing(1);
+        app.draw(&mut diff);
+        if app.key_is_pressed(1, Key::Num1)
+        {
+            speed = 800.0;
+            app.close_window(1);
+            
+        }
+        if app.key_is_pressed(1, Key::Num2)
+        {
+            speed = 1200.0;
+            app.close_window(1);
+        }
+        if app.key_is_pressed(1, Key::Num3)
+        {
+            speed = 1500.0;
+            app.close_window(1);
+        }
+        app.end_drawing();
+    }
+
     while !app.window_should_close(0)
     {
         if game_state == 3
@@ -97,7 +130,7 @@ fn main()
             let delta_time = app.delta_time(0);
             
         
-            if getkey{scene1.move_all(&delta_time);}
+            if getkey{scene1.move_all(&delta_time,speed);}
         
             if getkey{player.moved(&mut app,&delta_time,0)};
         
