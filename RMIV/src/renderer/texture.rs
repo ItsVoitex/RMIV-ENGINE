@@ -19,9 +19,9 @@ impl Texture
         };
         let img = img.flipv().fliph().into_rgba8();
         let (iwidth,iheight) = img.dimensions();
-        let data = img.as_raw();
+        let data = img.as_raw() ;
         let mut texture = 0;
-        unsafe {
+        unsafe { 
             gl::GenTextures(1, &mut texture);
             gl::BindTexture(gl::TEXTURE_2D, texture);
 

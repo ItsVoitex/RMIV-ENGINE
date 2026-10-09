@@ -1,5 +1,5 @@
 
-use glfw::{Context, GlfwReceiver, Monitor, WindowEvent};
+use glfw::{Context, GlfwReceiver,WindowEvent};
 
 use crate::application::{App};
 

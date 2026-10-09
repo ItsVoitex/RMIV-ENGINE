@@ -24,7 +24,6 @@ fn main()
     let height = 1080;
     
     let mut app = App::new();
-    app.create_window(width, height, "Zombie Dash");
     
 
     
@@ -90,54 +89,55 @@ fn main()
     );
     app.create_window(1920, 540, "Choose difficulty");
     
-    while !app.window_should_close(1)
+    while !app.window_should_close(0)
     {
         app.update_events();
-        app.begin_drawing(1);
+        app.begin_drawing(0);
         app.draw(&mut diff);
-        if app.key_is_pressed(1, Key::Num1)
+        if app.key_is_pressed(0, Key::Num1)
         {
             speed = 800.0;
-            app.close_window(1);
+            app.close_window(0);
             
         }
-        if app.key_is_pressed(1, Key::Num2)
+        if app.key_is_pressed(0, Key::Num2)
         {
             speed = 1200.0;
-            app.close_window(1);
+            app.close_window(0);
         }
-        if app.key_is_pressed(1, Key::Num3)
+        if app.key_is_pressed(0, Key::Num3)
         {
             speed = 1500.0;
-            app.close_window(1);
+            app.close_window(0);
         }
         app.end_drawing();
     }
+    app.create_window(width, height, "Zombie Dash");
 
-    while !app.window_should_close(0)
+    while !app.window_should_close(1)
     {
         if game_state == 3
         {
             break;
         }
-        while game_state == 0 && !app.window_should_close(0)
+        while game_state == 0 && !app.window_should_close(1)
         {
-            if app.key_is_pressed(0,Key::Space) 
+            if app.key_is_pressed(1,Key::Space) 
             {
                 getkey = true;
             }
             app.update_events();
-            let delta_time = app.delta_time(0);
+            let delta_time = app.delta_time(1);
             
         
             if getkey{scene1.move_all(&delta_time,speed);}
         
-            if getkey{player.moved(&mut app,&delta_time,0)};
+            if getkey{player.moved(&mut app,&delta_time,1)};
         
         
             scene1.spawn_spikes(spike_id);
         
-            app.begin_drawing(0);
+            app.begin_drawing(1);
         
             app.queue_draw( vec![&backround,&player.object]);
             scene1.draw(&mut app);
@@ -154,25 +154,25 @@ fn main()
 
         player.object.position.x = -400.0;
         player.object.position.y = -500.0;
-        while game_state == 1 && !app.window_should_close(0)
+        while game_state == 1 && !app.window_should_close(1)
         {
             app.update_events();
-            app.begin_drawing(0);
+            app.begin_drawing(1);
             app.draw(&mut over);
             app.end_drawing();
-            if app.key_is_pressed(0, Key::H)
+            if app.key_is_pressed(1, Key::H)
             {
                 game_state = 2;
             }
         }
-        while game_state == 2 && !app.window_should_close(0){
+        while game_state == 2 && !app.window_should_close(1){
             player.object.position.x = -400.0;
             player.object.position.y = -500.0;
             app.update_events();
-            app.begin_drawing(0);
+            app.begin_drawing(1);
             app.draw(&mut choice);
             app.end_drawing();
-            if app.key_is_pressed(0, Key::Y)
+            if app.key_is_pressed(1, Key::Y)
             {
                 scene1.checkleveldat();
                 scene1.reset();
@@ -182,7 +182,7 @@ fn main()
                 game_state = 0;
                 break;
             }
-            if app.key_is_pressed(0, Key::N)
+            if app.key_is_pressed(1, Key::N)
             {
                 
                 game_state = 3;
