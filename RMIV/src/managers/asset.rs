@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use crate::renderer::{Mesh, Shader, Texture};
+use crate::{renderer::{Mesh, Shader, Texture}};
 
 pub struct AssetManager
 {
@@ -63,7 +63,7 @@ impl AssetManager
         {
             return *_id;
         }
-        self.shaders.insert(self.shader_index, Shader::new(shader_path[0],shader_path[1]));
+        self.shaders.insert(self.shader_index, Shader::create(shader_path[0],shader_path[1]));
         self.used_paths.insert( shader_path[0].to_string(),self.shader_index);
         let temp = self.shader_index;
         self.shader_index += 1;
@@ -83,7 +83,7 @@ impl AssetManager
 
     pub fn load_default_shader(&mut self) -> u32
     {
-        self.shaders.insert(self.shader_index, Shader::create());
+        self.shaders.insert(self.shader_index, Shader::create_default());
         self.used_paths.insert("default-shader".to_string(), self.shader_index);
         let temp = self.shader_index;
         self.shader_index += 1;

@@ -6,14 +6,25 @@ use rmiv_engine::prelude::*;
 
 pub struct Scene
 {
-    pub objects:Vec<Object>,
+    pub objects:Vec<Entity>,
     lines:Vec<String>,
 }
 
 fn read_lines(file_path:&str) -> Vec<String>
     {
         let mut result = Vec::new();
-        for line in std::fs::read_to_string(file_path).unwrap().lines() 
+        let file = std::fs::read_to_string(file_path);
+        let file = match file{
+            Ok(file) =>file,
+            _ =>{
+                let contents = "^*****^*****^***^**^^***^;\n*****^***^*******^^****^*;\n*****^^*****^*****^****^*;\n*****^^****^****^*******^;\n******^*****^**^*******^^;\n******^****^**^***^^***^*;\n****^^*^****^****^***^***;\n*^***^****^***^^******^**;";
+                let _ = std::fs::File::create("Assets/level1/level.dat");
+                let _ = std::fs::write("Assets/level1/level.dat", contents);
+                let file = std::fs::read_to_string("Assets/level1/level.dat").expect("failed to create file");
+                file
+            }
+        };
+        for line in file.lines() 
         {
             result.push(line.to_string())
         }
@@ -31,20 +42,22 @@ impl Scene
             lines:Vec::new(),
         }
     }
-    pub fn move_all(&mut self,delta_time:&f32,speed:f32)
+    pub fn getobjects(&mut self) -> Vec<&Entity>
+    {
+        let mut vec = Vec::new();
+        for i in 0..self.objects.len()
+        {   
+            vec.push(&self.objects[i]);
+        }
+        return vec;
+    }
+    pub fn move_all(&mut self,delta_time:&f32,speed:f32,world:&mut World)
     {
         for j in 0..self.objects.len()
         {
-            self.objects[j].position.x -= speed * *delta_time;
+            world.get_transfom(&self.objects[j]).position.x -= speed * *delta_time;
             
         }
-    }
-    pub fn draw(&mut self,app:&mut App)
-    {
-        for i in 0..self.objects.len()
-            {
-                app.draw(&mut self.objects[i]);
-            }
     }
     pub fn checkleveldat(&mut self)
     {
@@ -52,23 +65,25 @@ impl Scene
     }
 
 
-    pub fn reset(&mut self)
+    pub fn reset(&mut self,world:&mut World)
     {
         for i in (0..self.objects.len()).rev()
         {
+            world.destroy(self.objects[i]);
             self.objects.swap_remove(i);
         }
     }
 
 
-    pub fn spawn_spikes(&mut self,spike_id:u32)
+    pub fn spawn_spikes(&mut self,spike_id:u32,world:&mut World)
     {
         
         let mut offset = 960.0;
         for i in (0..self.objects.len()).rev()
         {
-            if self.objects[i].position.x < -1000.0
+            if world.get_transfom(&self.objects[i]).position.x < -1000.0
             {
+                world.destroy(self.objects[i]);
                 self.objects.swap_remove(i);
             }
             
@@ -86,10 +101,25 @@ impl Scene
                     if self.lines[i].chars().nth(j) == Some('^')
                     {
                         offset += 115.2;
-                        let mut object = Object::create(spike_id,76.8*1.5, 70.0*1.3, -0.5, 0);
-                        object.set_hitbox(76.8, 70.09, -0.5);
-                        object.position.x += offset;
-                        object.position.y = -520.0;
+                        let object = world.spawn((Transform{
+                            position:vec3(0.0,-520.0,0.0),
+                            scale:vec3(76.8*1.5, 70.0*1.3, -0.5),
+                            rotation:0.0
+                        },
+                        Render{
+                            shader_id:0,
+                            texture_id:Some(spike_id),
+                            renderlayers:(1,1),
+                        },
+                        Hitbox{
+                            x:76.8, 
+                            y:70.09,
+                            z:-0.5
+                        }
+                        ));
+                        
+                        let transform = world.get_transfom(&object);
+                        transform.position.x += offset;
                         self.objects.push(object);
                     }
                     

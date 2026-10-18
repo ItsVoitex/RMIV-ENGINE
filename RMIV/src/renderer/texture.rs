@@ -1,9 +1,6 @@
 use std::ffi::c_void;
 
-pub struct Texture
-{
-    pub id:u32,
-}
+pub struct Texture(pub u32);
 
 impl Texture
 {
@@ -13,9 +10,8 @@ impl Texture
             Ok(file) => file,
             Err(error) => 
             {
-                println!("failed to open file due to {}", error);
-                image::open("Assets/textures/NoTexture.png").expect("hello") 
-            },
+                panic!("failed to open {} due to {}",texture_path,error);
+            }
         };
         let img = img.flipv().fliph().into_rgba8();
         let (iwidth,iheight) = img.dimensions();
@@ -38,10 +34,7 @@ impl Texture
         
        
         
-        Texture
-        {
-            id:texture,
-        }
+        Texture(texture)
     
     }
 }
@@ -51,7 +44,7 @@ impl Drop for Texture
     fn drop(&mut self)
     {
         unsafe {
-            gl::DeleteTextures(1, &self.id);
+            gl::DeleteTextures(1, &self.0);
         }
     }
 }

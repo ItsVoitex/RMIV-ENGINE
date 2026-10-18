@@ -31,7 +31,7 @@ pub enum MouseButton {
 #[repr(i32)]
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 
-pub enum Key {
+pub enum KeyCode {
     Space = ffi::GLFW_KEY_SPACE,
     Apostrophe = ffi::GLFW_KEY_APOSTROPHE,
     Comma = ffi::GLFW_KEY_COMMA,

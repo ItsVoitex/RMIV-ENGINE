@@ -2,13 +2,11 @@ use std::ffi::CString;
 use std::fs;
 
 
-pub struct Shader {
-    pub id:u32
-}
+pub struct Shader (pub u32);
 
 impl  Shader{
 
-    pub fn create() -> Shader
+    pub fn create_default() -> Shader
     {
         //may be possible to do these calculations on the cpu
         const VERTEX_SOURCE:&str = r#"
@@ -17,13 +15,18 @@ impl  Shader{
         layout (location = 1) in vec2 aTexCoord;
         out vec2 texCoord;
         uniform vec3 offset;
+        uniform float rotation;
         uniform vec3 scale;
         void main()
         {
+            float angle = radians(rotation);
+            float s = sin(angle);\
+            float c = cos(angle);
             vec3 position = aPos * scale;
             position = position + offset;
             position.x = position.x  / 960;
             position.y = position.y / 540 ;
+            position.xy = mat2(c,-s,s,c) *position.xy;
             gl_Position = vec4(position, 1.0);
             texCoord = aTexCoord;
         }
@@ -86,12 +89,12 @@ impl  Shader{
 
             gl::DeleteShader(fragment_shader);
             gl::DeleteShader(vertex_shader); 
-            Shader {
-                id:shader_program
-            }
+            Shader (
+                shader_program
+            )
         }
     }
-    pub fn new(vertex_path:&str,fragment_path:&str) -> Shader
+    pub fn create(vertex_path:&str,fragment_path:&str) -> Shader
     {
         let vertex_shader_source = CString::new(fs::read_to_string(vertex_path).unwrap()).unwrap();
         let fragment_shader_source = CString::new(fs::read_to_string(fragment_path).unwrap()).unwrap();
@@ -138,16 +141,16 @@ impl  Shader{
 
             gl::DeleteShader(fragment_shader);
             gl::DeleteShader(vertex_shader); 
-            Shader {
-                id:shader_program
-            }
+            Shader (
+                shader_program
+            )
         }
     }
 
     pub fn use_program(&self)
     {
         unsafe {
-            gl::UseProgram(self.id);
+            gl::UseProgram(self.0);
         }
     }
 }
@@ -157,7 +160,7 @@ impl Drop for Shader
     fn drop(&mut self)
     {
         unsafe {
-            gl::DeleteProgram(self.id);
+            gl::DeleteProgram(self.0);
         }
     }
 }

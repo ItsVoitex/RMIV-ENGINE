@@ -1,6 +1,6 @@
 [workspace]
 members = [
     "RMIV",
-    "ZombieDash"
+    "ZombieDash",
 ]
 resolver = "3"
