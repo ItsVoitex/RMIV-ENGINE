@@ -154,7 +154,7 @@ fn startup(assets:&mut AssetManager,world:&mut World,platform:&mut Platform) -> 
         targetwindow:window1.clone()
     });
     let speed = 800.0;
-    Game { window1,window2:window1, speed ,player:None,title:0,choice:0,over:0,state:0,getkey:false,spike_id:0,scene:None}
+    Game { window1,window2:window1, speed ,player:None,title:Entity::empty(),choice:Entity::empty(),over:Entity::empty(),state:0,getkey:false,spike_id:0,scene:None}
 }
 fn update1(assets:&mut AssetManager,world:&mut World,platform:&mut Platform,game:&mut Game)
 {
@@ -206,6 +206,7 @@ fn update2(_assets:&mut AssetManager,world:&mut World,platform:&mut Platform,gam
     };
     if game.state == 3
     {
+        platform.close_window(game.window2);
         return;
     }
     if game.state == 0
