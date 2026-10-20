@@ -17,10 +17,8 @@ fn read_lines(file_path:&str) -> Vec<String>
         let file = match file{
             Ok(file) =>file,
             _ =>{
-                let contents = "^*****^*****^***^**^^***^;\n*****^***^*******^^****^*;\n*****^^*****^*****^****^*;\n*****^^****^****^*******^;\n******^*****^**^*******^^;\n******^****^**^***^^***^*;\n****^^*^****^****^***^***;\n*^***^****^***^^******^**;";
-                let _ = std::fs::File::create("Assets/level1/level.dat");
-                let _ = std::fs::write("Assets/level1/level.dat", contents);
-                let file = std::fs::read_to_string("Assets/level1/level.dat").expect("failed to create file");
+                let _ = std::fs::write("Assets/level1/level.dat", "^*****^*****^***^**^^***^;\n*****^***^*******^^****^*;\n*****^^*****^*****^****^*;\n*****^^****^****^*******^;\n******^*****^**^*******^^;\n******^****^**^***^^***^*;\n****^^******^****^***^***;\n*^***^****^***^^****^****;");
+                let file = std::fs::read_to_string("Assets/level1/level.dat").expect("failed to create or read file path:Assets/level1/level.dat");
                 file
             }
         };
@@ -83,9 +81,11 @@ impl Scene
         {
             if world.get_transfom(&self.objects[i]).position.x < -1000.0
             {
+                self.objects[i].printdata();
                 world.destroy(self.objects[i]);
                 self.objects.swap_remove(i);
             }
+            
             
         }
         if self.objects.len() <= 3
@@ -117,6 +117,7 @@ impl Scene
                             z:-0.5
                         }
                         ));
+                        
                         
                         let transform = world.get_transfom(&object);
                         transform.position.x += offset;

@@ -20,28 +20,28 @@ pub struct  WindowHandle
 
 pub struct WindowManager
 {
-    pub sharedwindows:Vec<Option<Window>>,
-    pub primarywindows:Vec<Option<Window>>,
+    pub sharedwindows:Vec<Option<WindowInstance>>,
+    pub primarywindows:Vec<Option<WindowInstance>>,
     pub primarymeshes:Vec<Option<Mesh>>,
     pub sharedmeshes:Vec<Option<Mesh>>,
-    pub mainwind:Window,
+    pub mainwind:WindowInstance,
 }
-pub struct Window 
+pub struct WindowInstance 
 {
     pub window:glfw::PWindow,
-    pub events:GlfwReceiver<(f64,WindowEvent)>,
-    pub delta_time:f32,
+    events:GlfwReceiver<(f64,WindowEvent)>,
+    delta_time:f32,
     last_time:f64,
     current_time:f64,
-    pub frame_buffer:(i32,i32),
-    pub windinfo:(i32,i32,bool,bool),
+    frame_buffer:(i32,i32),
+    windinfo:(i32,i32,bool,bool),
     is_primary:bool,
 }
 impl WindowManager
 {
     pub fn new(runtime:&mut Glfw) -> WindowManager
     {
-        let mut mainwind = Window::create_primary(runtime, 1, 1, "mainwind");
+        let mut mainwind = WindowInstance::create_primary(runtime, 1, 1, "mainwind");
         mainwind.window.hide();
         WindowManager { sharedwindows: Vec::new(), primarywindows: Vec::new(), mainwind: mainwind,primarymeshes:Vec::new(),sharedmeshes:Vec::new() }
     }
@@ -49,7 +49,7 @@ impl WindowManager
     pub fn create_window(&mut self,runtime:&mut Glfw,width:u32,height:u32,window_title:&str) -> WindowHandle
     {
         let wind = &self.mainwind;
-        let window = Window::create_shared(width, height, window_title, runtime,&wind);
+        let window = WindowInstance::create_shared(width, height, window_title, runtime,&wind);
         self.sharedwindows.push(Some(window));
 
 
@@ -61,7 +61,7 @@ impl WindowManager
     {
         if let Some(wind) = &self.primarywindows[primarywindow.id as usize]
         {
-            let window = Window::create_shared(width, height, window_title, runtime,&wind);
+            let window = WindowInstance::create_shared(width, height, window_title, runtime,&wind);
             self.sharedwindows.push(Some(window));
 
             self.sharedmeshes.push(Some(deafultmesh()));
@@ -74,7 +74,7 @@ impl WindowManager
     }
     pub fn create_primary(&mut self,runtime:&mut Glfw,width:u32,height:u32,window_title:&str) -> WindowHandle
     {
-        let window = Window::create_primary(runtime,width, height, window_title);
+        let window = WindowInstance::create_primary(runtime,width, height, window_title);
         self.primarywindows.push(Some(window));
 
         self.primarymeshes.push(Some(deafultmesh()));
@@ -136,7 +136,7 @@ impl WindowManager
         }
         
     }
-    pub fn get(&self,handle:&WindowHandle) -> Option<&Window>
+    pub fn get(&self,handle:&WindowHandle) -> Option<&WindowInstance>
     {
         if handle.is_primary == true
         {
@@ -197,7 +197,7 @@ impl WindowManager
         }
     
     }
-    pub fn get_mut(&mut self,handle:&WindowHandle) -> Option<&mut Window>
+    pub fn get_mut(&mut self,handle:&WindowHandle) -> Option<&mut WindowInstance>
     {
         if handle.is_primary == true
         {
@@ -229,9 +229,9 @@ impl WindowManager
     }
 }
 
-impl Window
+impl WindowInstance
 {
-    pub fn create_window(width:u32,height:u32,window_title:&str,runtime:&mut Glfw,primarywindow:&Window) -> Window
+    pub fn create_window(width:u32,height:u32,window_title:&str,runtime:&mut Glfw,primarywindow:&WindowInstance) -> WindowInstance
     {
         if let Some((mut window,_events)) =  primarywindow.window.create_shared(width, height, window_title, glfw::WindowMode::Windowed)
             {
@@ -247,13 +247,13 @@ impl Window
                     gl::Enable(gl::DEPTH_TEST);
                     
                 }
-                return Window { window, events: (_events), delta_time:0.0,last_time:0.0,current_time:0.0,frame_buffer:(width,height),is_primary:false,windinfo:(width as i32,height as i32,false,false)};    
+                return WindowInstance { window, events: (_events), delta_time:0.0,last_time:0.0,current_time:0.0,frame_buffer:(width,height),is_primary:false,windinfo:(width as i32,height as i32,false,false)};    
             }
             else {
                 panic!("failed to create shared window");
             }
     }
-    pub fn create_primary(runtime:&mut Glfw,width:u32,height:u32,window_title:&str) -> Window
+    pub fn create_primary(runtime:&mut Glfw,width:u32,height:u32,window_title:&str) -> WindowInstance
     {
        
        
@@ -275,7 +275,7 @@ impl Window
             gl::Enable(gl::DEPTH_TEST);
         }
 
-        Window { 
+        WindowInstance  { 
             window, 
             events: (_events), 
             delta_time:0.0,
@@ -295,7 +295,7 @@ impl Window
         self.last_time = self.current_time;
         return self.delta_time;
     }
-    pub fn create_shared(width:u32,height:u32,window_title:&str,runtime:&mut Glfw,primarywindow:&Window) -> Window
+    pub fn create_shared(width:u32,height:u32,window_title:&str,runtime:&mut Glfw,primarywindow:&WindowInstance) -> WindowInstance
     {
         
          if let Some((mut window,_events)) =  primarywindow.window.create_shared(width, height, window_title, glfw::WindowMode::Windowed)
@@ -312,7 +312,7 @@ impl Window
                     gl::Enable(gl::DEPTH_TEST);
                     
                 }
-                return Window { window, events: (_events), delta_time:0.0,last_time:0.0,current_time:0.0,frame_buffer:(width,height),is_primary:false,windinfo:(width as i32,height as i32,false,false)};    
+                return WindowInstance{ window, events: (_events), delta_time:0.0,last_time:0.0,current_time:0.0,frame_buffer:(width,height),is_primary:false,windinfo:(width as i32,height as i32,false,false)};    
             }
             else {
                 panic!("failed to create shared window");
@@ -393,7 +393,7 @@ impl Window
         self.window.swap_buffers();  
     }
 }
-impl Drop for Window {
+impl Drop for WindowInstance {
     fn drop(&mut self) {
         
         unsafe {

@@ -101,12 +101,29 @@ impl <T>App<T>
         {
             i(assets,world,platform);
         }
-        
+        /*for i in world.query(crate::managers::world::ComponentType::Window)
+        {
+            let window = world.get_window(&i);
+            if window.is_primary == true
+            {
+                platform.create_primary_window(window.resoluton.0, window.resoluton.1, &window.title);
+
+            }
+            if window.windowref.is_some()
+            {
+                platform.create_shared(window.resoluton.0, window.resoluton.1, &window.title, &window.windowref.expect("hmmm thats wierd"));
+            }
+            else {
+                platform.create_window(window.resoluton.0, window.resoluton.1, &window.title);
+            }
+        }
+        */
     
         while platform.windows.sharedwindows.iter().any(|wind| wind.is_some()) || platform.windows.primarywindows.iter().any(|wind| wind.is_some())
         {
             
             platform.update_events();
+            
             for i in usystems.iter()
             {
                 i(assets,world,platform)
@@ -141,16 +158,7 @@ impl <T>App<T>
     }
     
      
-    pub fn load_textured_mesh(&mut self,texture_path:&str,width:f32,height:f32,depth:f32,window_handle:WindowHandle) -> Option<(u32,u32)>
-    {
-       let window = match self.platform.windows.get_mut(&window_handle){
-            Some(wind) => wind,
-            None => return None,
-        };
-        window.make_current();
-        Some(self.assets.load_textured_mesh(texture_path, width, height, depth))
-        
-    }
+    
     pub fn load_texture_from_file(&mut self,texture_path:&str) -> u32
     {
         self.assets.load_texture_from_file(texture_path, )

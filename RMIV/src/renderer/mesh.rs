@@ -9,7 +9,7 @@ pub struct Mesh{
 
 //generates vbo which store the verticies vao for how the vertices are layed out and ebo to generate meshes without duplicate verictes as some overlap
 impl Mesh{
-    pub fn gen_rectangle(vertices:[f32;20], indices:[u32;6]) -> Mesh
+    pub fn gen_rectangle(vertices:Vec<f32>, indices:Vec<u32>) -> Mesh
     {
         let mut vbo = 0;
         unsafe {
@@ -68,3 +68,27 @@ impl Drop for Mesh
     
     }
 }
+
+/*
+#[repr(C)]
+#[derive(Clone, Copy)]
+struct Vertex {
+    position: [f32; 3],
+    normal: [f32; 3],
+    uv: [f32; 2],
+    color: [f32; 4],
+}
+
+struct Mesh {
+    vertices: Vec<Vertex>, // optional CPU-side copy
+    indices: Vec<u32>,
+    vao: u32,
+    vbo: u32,
+    ebo: u32,
+}
+
+struct Material {
+    color: [f32; 4],       // tint/base color
+    albedo_texture: Option<TextureHandle>,
+}
+ */

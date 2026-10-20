@@ -41,6 +41,10 @@ impl Platform
         }
 
     }
+    pub fn create_shared(&mut self,width:u32,height:u32,window_title:&str,primarywindow:&WindowHandle) ->WindowHandle
+    {
+        self.windows.create_shared(&mut self.runtime,primarywindow,width, height, window_title)
+    }
     pub fn create_window(&mut self,width:u32,height:u32,window_title:&str) ->WindowHandle
     {
         self.windows.create_window(&mut self.runtime, width, height, window_title)
@@ -54,7 +58,7 @@ impl Platform
     fn get_KeyCode(&self,window_handle:&WindowHandle, KeyCode: KeyCode) -> Option<Action> {
         unsafe 
         { 
-            let window = 
+            let window =  
             match self.windows.get(window_handle){
                 Some(wind) => wind,
                 None => return None,

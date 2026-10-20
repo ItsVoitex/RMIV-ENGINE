@@ -1,5 +1,5 @@
 
-mod managers;
+pub mod managers;
 pub mod application;
 pub mod renderer;
 pub mod templates;

@@ -9,7 +9,6 @@ pub struct AssetManager
     used_paths:HashMap<String,u32>,
     shader_index:u32,
     texture_index:u32,
-    mesh_index:u32
 }
 
 impl AssetManager
@@ -24,15 +23,9 @@ impl AssetManager
             used_paths:HashMap::new(),
             shader_index:0,
             texture_index:0,
-            mesh_index:0
         }
     }
     //since this one is a little long pretty much it generates textures meshes or shaders returning an id
-    //it also checks if you use the same file path to prevent duplicate files from being loaded
-    pub fn load_textured_mesh(&mut self,texture_path:&str,width:f32,height:f32,depth:f32) -> (u32,u32)
-    {
-        (self.load_texture_from_file(texture_path),self.load_mesh(width, height, depth))
-    }
     pub fn load_texture_from_file(&mut self,texture_path:&str) -> u32
     {
         if let Some(_id) = self.used_paths.get(texture_path)
@@ -90,10 +83,14 @@ impl AssetManager
         return temp;
     }
     
-    pub fn load_mesh(&mut self,width:f32,height:f32,depth:f32) -> u32
-    {
-        
-        let vertices: [f32; 20] = [
+    
+
+
+}
+
+
+/*
+let vertices: [f32; 20] = [
             width / 2.0,   height / 2.0,    depth,  0.0, 0.0,
            -width / 2.0,   height / 2.0,    depth,  1.0, 0.0,
            -width / 2.0,  -height / 2.0,    depth,  1.0, 1.0,
@@ -105,15 +102,4 @@ impl AssetManager
             0,  1,  2,
             0,  2,  3,
         ];
-        self.meshes.insert(self.mesh_index, Mesh::gen_rectangle(vertices,indices));
-        let temp = self.mesh_index;
-        self.mesh_index += 1;
-        return temp;
-    }
-    
-
-
-}
-
-
-
+ */

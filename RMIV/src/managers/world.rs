@@ -14,8 +14,9 @@ pub enum ComponentType {
     Hitbox = 1,
     Render = 2,
     Camera = 3,
+    //Window = 4
 }
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug,)]
 pub struct Entity{
     id:u32,
     generation:u32,
@@ -25,30 +26,46 @@ impl Entity{
     {
         Entity { id: 0, generation: 0 }
     }
+    pub fn printdata(&self)
+    {
+        println!("id:{} generation:{}",self.id,self.generation);
+    }
 }
+#[derive(Copy, Clone,PartialEq,Debug,)]
 pub struct Transform
 {
     pub position:Vec3,
     pub scale:Vec3,
     pub rotation:f32,
 }
+#[derive(Copy, Clone,PartialEq,Debug,)]
 pub struct Hitbox
 {
     pub x:f32,
     pub y:f32,
     pub z:f32,
 }
+#[derive(Copy, Clone)]
 pub struct Camera{
     pub position:Vec3,
     pub rotation:f32,
     pub renderlayers:(u32,u32),
     pub targetwindow:WindowHandle,
 }
+#[derive(Copy, Clone,PartialEq,Debug,)]
 pub struct Render
 {
     pub texture_id:Option<u32>,
     pub shader_id: u32,
     pub renderlayers:(u32,u32)
+}
+
+pub struct Window
+{
+    pub title:String,
+    pub resoluton:(u32,u32),
+    pub is_primary:bool,
+    pub windowref:Option<WindowHandle>
 }
 
 struct Storage<T> {
@@ -59,10 +76,11 @@ struct Storage<T> {
 pub struct World
 {
     next_id:u32,
+    freeentites:Vec<Entity>,
     transforms : Storage<Transform>,
     hitboxes : Storage<Hitbox>,
     renders : Storage<Render>,
-    cameras : Storage<Camera>
+    cameras : Storage<Camera>,
 }
 impl Component for Transform
 {
@@ -72,6 +90,15 @@ impl Component for Transform
         world.transforms.entity_to_index[entity.id as usize] = Some(world.transforms.components.len() -1);
     }
 }
+/*impl Component for Window
+{
+    fn add_to(self, world: &mut World, entity: &Entity) {
+        world.windows.entities.push(entity.clone());
+        world.windows.components.push(self);
+        world.windows.entity_to_index[entity.id as usize] = Some(world.windows.components.len() -1);
+    }
+}
+    */
 impl Component for Hitbox
 {
     fn add_to(self, world: &mut World, entity: &Entity) {
@@ -134,7 +161,11 @@ impl <T>Storage<T>
     {
         if let Some(index) = self.entity_to_index[entity.id as usize]
         {
-            return Some(&self.components[index]);
+            if self.entities[index] == *entity
+            {
+                return Some(&self.components[index]);
+            }
+            return None;
         }
         return None;
         
@@ -143,7 +174,11 @@ impl <T>Storage<T>
     {
         if let Some(index) = self.entity_to_index[entity.id as usize]
         {
-            return Some(&mut self.components[index]);
+            if self.entities[index] == *entity
+            {
+                return Some(&mut self.components[index]);
+            }
+            return None;
         }
         return None;     
     }
@@ -155,7 +190,6 @@ impl <T>Storage<T>
                 self.entity_to_index[self.entities[self.entities.len() -1].id as usize] = Some(pos);
                 self.entities.swap_remove(pos);
                 self.components.swap_remove(pos);
-                
                 self.entity_to_index[entity.id as usize] = None;
                 
             },
@@ -163,6 +197,7 @@ impl <T>Storage<T>
         }
     }
 }
+
 impl World
 {
     pub fn new() -> World
@@ -170,22 +205,54 @@ impl World
         World 
         { 
             next_id:0,
+            freeentites:Vec::new(),
             transforms: Storage::new(), 
             hitboxes: Storage::new(), 
             renders: Storage::new(),
-            cameras: Storage::new() 
+            cameras: Storage::new(),
         }
     }
     pub fn spawn<T:Component>(&mut self,components:T) -> Entity
     {
-        let entity = Entity { id: self.next_id, generation: 0 };
-        self.transforms.entity_to_index.push(None);
-        self.hitboxes.entity_to_index.push(None);
-        self.renders.entity_to_index.push(None);
-        self.cameras.entity_to_index.push(None);
-        self.next_id += 1;
-        components.add_to(self,&entity);
-        entity
+        if self.freeentites.len() > 0
+        {
+            let mut entity = self.freeentites.remove(0);
+            entity.generation += 1;
+            components.add_to(self,&entity);
+            entity
+        }
+        else 
+        {
+            let entity = Entity { id: self.next_id, generation: 0 };
+            self.transforms.entity_to_index.push(None);
+            self.hitboxes.entity_to_index.push(None);
+            self.renders.entity_to_index.push(None);
+            self.cameras.entity_to_index.push(None);
+            self.next_id += 1;
+            components.add_to(self,&entity);
+            entity
+        }
+        
+    }
+    pub fn spawn_empty(&mut self) -> Entity
+    {
+        if self.freeentites.len() > 0
+        {
+            let mut entity = self.freeentites.remove(0);
+            entity.generation += 1;
+            entity
+        }
+        else 
+        {
+            let entity = Entity { id: self.next_id, generation: 0 };
+            self.transforms.entity_to_index.push(None);
+            self.hitboxes.entity_to_index.push(None);
+            self.renders.entity_to_index.push(None);
+            self.cameras.entity_to_index.push(None);
+            self.next_id += 1;
+            entity
+        }
+        
     }
     pub fn destroy(&mut self,entity:Entity)
     {
@@ -193,6 +260,30 @@ impl World
         self.cameras.destroy(&entity);
         self.hitboxes.destroy(&entity);
         self.renders.destroy(&entity);
+        self.freeentites.push(entity);
+    }
+    pub fn clone(&mut self,entity:&Entity) -> Entity
+    {
+        let new = self.clone_all_components(entity);
+        let entity = self.spawn_empty();
+        if new.0.is_some()
+        {
+            self.add_component(&entity, new.0.unwrap());
+        }
+        if new.1.is_some()
+        {
+            self.add_component(&entity, new.1.unwrap());
+        }
+        if new.2.is_some()
+        {
+            self.add_component(&entity, new.2.unwrap());
+        }
+        if new.3.is_some()
+        {
+            self.add_component(&entity, new.3.unwrap());
+        }
+        entity
+
     }
     pub fn add_component<T:Component>(&mut self,entity:&Entity,component:T)
     {
@@ -213,6 +304,49 @@ impl World
         }
         return vec;
   
+    }
+    fn clone_all_components(&mut self,entity:&Entity) -> (Option<Render>,Option<Transform>,Option<Camera>,Option<Hitbox>)
+    {
+        let mut temp:(Option<Render>,Option<Transform>,Option<Camera>,Option<Hitbox>) = (None,None,None,None);
+        if let Some(render) = self.renders.get_component(entity)
+        {
+            temp.0 = Some(render.clone());
+        }
+        if let Some(transform) = self.transforms.get_component(entity)
+        {
+            temp.1 = Some(transform.clone());
+        }
+        if let Some(camera) = self.cameras.get_component(entity)
+        {
+            temp.2 = Some(camera.clone());
+        }
+        if let Some(hitbox) = self.hitboxes.get_component(entity)
+        {
+            temp.3 = Some(hitbox.clone());
+        }
+        temp
+    }
+    pub fn get_all_components(&mut self,entity:&Entity) -> (Option<&Render>,Option<&Transform>,Option<&Camera>,Option<&Hitbox>)
+    {
+        let mut temp:(Option<&Render>,Option<&Transform>,Option<&Camera>,Option<&Hitbox>) = (None,None,None,None);
+        if let Some(render) = self.renders.get_component(entity)
+        {
+            temp.0 = Some(render);
+        }
+        if let Some(transform) = self.transforms.get_component(entity)
+        {
+            temp.1 = Some(transform);
+        }
+        if let Some(camera) = self.cameras.get_component(entity)
+        {
+            temp.2 = Some(camera);
+        }
+        if let Some(hitbox) = self.hitboxes.get_component(entity)
+        {
+            temp.3 = Some(hitbox);
+        }
+        temp
+
     }
     pub fn get_camera_components(&self,entities:Vec<Entity>) -> Vec<&Camera>
     {
@@ -271,6 +405,17 @@ impl World
             panic!("failed to get component")
         }
     }
+    /*pub fn get_window(&mut self,entity:&Entity) -> &Window
+    {
+        if let Some(component) = self.windows.get_mut_component(&entity)
+        {
+            return component;
+        }
+        else {
+            panic!("failed to get component")
+        }
+    }
+    */
         
 
     pub fn query(&self,componenttype:ComponentType) -> Vec<Entity>
@@ -280,9 +425,9 @@ impl World
                 let mut val = Vec::new();
                 for i in 0..self.transforms.entity_to_index.len()
                 {
-                    if let Some(_) =  &self.transforms.entity_to_index[i]
+                    if let Some(index) =  &self.transforms.entity_to_index[i]
                     {
-                        val.push(Entity{id:i as u32,generation:0});
+                        val.push(self.transforms.entities[*index].clone());
                     }
                     else {
                         continue;
@@ -294,9 +439,9 @@ impl World
                 let mut val = Vec::new();
                 for i in 0..self.hitboxes.entity_to_index.len()
                 {
-                    if let Some(_) =  &self.hitboxes.entity_to_index[i]
+                    if let Some(index) =  &self.hitboxes.entity_to_index[i]
                     {
-                        val.push(Entity{id:i as u32,generation:0});
+                        val.push(self.hitboxes.entities[*index].clone());
                     }
                     else {
                         continue;
@@ -309,9 +454,9 @@ impl World
                 let mut val = Vec::new();
                 for i in 0..self.renders.entity_to_index.len()
                 {
-                    if let Some(_) =  &self.renders.entity_to_index[i]
+                    if let Some(index) =  &self.renders.entity_to_index[i]
                     {
-                        val.push(Entity{id:i as u32,generation:0});
+                        val.push(self.renders.entities[*index].clone());
                     }
                     else {
                         continue;
@@ -324,9 +469,9 @@ impl World
                 let mut val = Vec::new();
                 for i in 0..self.cameras.entity_to_index.len()
                 {
-                    if let Some(_) =  &self.cameras.entity_to_index[i]
+                    if let Some(index) =  &self.cameras.entity_to_index[i]
                     {
-                        val.push(Entity{id:i as u32,generation:0});
+                        val.push(self.cameras.entities[*index].clone());
                     }
                     else {
                         continue;
@@ -334,6 +479,21 @@ impl World
                 }
                 return val;
             }
+            /*ComponentType::Window =>{
+                let mut val = Vec::new();
+                for i in 0..self.windows.entity_to_index.len()
+                {
+                    if let Some(index) =  &self.windows.entity_to_index[i]
+                    {
+                        val.push(self.windows.entities[*index].clone());
+                    }
+                    else {
+                        continue;
+                    }
+                }
+                return val;
+            }
+            */
 
         }
     }

@@ -20,14 +20,14 @@ pub struct Renderer
 
 pub fn deafultmesh() -> Mesh
 {
-    let vertices: [f32; 20] = [
+    let vertices:Vec<f32> = vec![
             0.5,   -0.5,    0.5,  0.0, 0.0,
            -0.5,   -0.5,    0.5,  1.0, 0.0,
            -0.5,  0.5,    0.5,  1.0, 1.0,
             0.5,  0.5,    0.5,  0.0, 1.0,
         ];
-        let indices: [u32; 6]= 
-        [
+        let indices:Vec<u32> = vec![ 
+        
             0,  1,  2,
             0,  2,  3,
         ];
@@ -37,7 +37,6 @@ impl Renderer
 {
     pub fn create()-> Renderer
     {
-        //binds default mesh to be used and sent to the gpu
          
         Renderer{
             texture_name:CString::new("texture1").unwrap(),
@@ -75,6 +74,13 @@ impl Renderer
             {
                 if entities[j].0.renderlayers.0 <= cameras[i].renderlayers.1 && cameras[i].renderlayers.0 <= entities[j].0.renderlayers.1 
                 {
+                    if  entities[j].1.position.x > ( 960.0 + entities[j].1.scale.x/2.0) || 
+                        entities[j].1.position.x < (-960.0 - entities[j].1.scale.x/2.0) || 
+                        entities[j].1.position.y < (-540.0 - entities[j].1.scale.y/2.0) || 
+                        entities[j].1.position.y > ( 540.0 + entities[j].1.scale.y/2.0)
+                    {
+                        continue;
+                    }
                     if entities[j].0.texture_id == None
                     {
                         println!("entity has no texture id");
