@@ -31,7 +31,7 @@ fn startup(assets:&mut AssetManager,world:&mut World,platform:&mut Platform) -> 
 
 
 
-    world.spawn(Camera {
+    world.spawn(Camera2D {
         position: vec3(0.0, 0.0, 0.0),
         rotation: 0.0,
         renderlayers: (1, 1),
@@ -40,7 +40,7 @@ fn startup(assets:&mut AssetManager,world:&mut World,platform:&mut Platform) -> 
 
 
     
-    let backround = world.spawn( (
+    world.spawn( (
     Render{
         texture_id:Some(assets.load_texture_from_file("Assets/textures/backround.png")),
         shader_id:0,
@@ -50,8 +50,6 @@ fn startup(assets:&mut AssetManager,world:&mut World,platform:&mut Platform) -> 
         position:vec3(0.0, 0.0, 0.0),
         rotation:0.0
     },));
-    
-    let backround2 = world.clone(&backround);
      let player = Player::create(
         assets.load_texture_from_file("Assets/textures/zombie.png"),
         80.0*1.2, 70.0*1.2, -0.1,
@@ -68,8 +66,8 @@ fn main()
 {
     
     App::new()
-    .add_startupstate_system(startup)
-    .add_updatestate_system(update)
+    .add_startup_system(startup)
+    .add_update_system(update)
     .run();
 
     

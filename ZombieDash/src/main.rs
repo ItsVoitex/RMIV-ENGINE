@@ -3,7 +3,7 @@ mod player;
 mod scene;
 use scene::Scene;
 use player::Player;
-use rmiv_engine::prelude::*;
+use rmiv_engine::{backend::Mesh, managers::{asset::Texture, window}, prelude::*};
 /*
 max
 -921.6
@@ -26,47 +26,58 @@ pub struct Game
     over:Entity,
     state:i32,
     getkey:bool,
-    spike_id:u32,
+    spike_id:AssetHandle,
     scene:Option<Scene>,
     diff:Entity,
+    mesh:AssetHandle
 
 
 }
 fn startup(assets:&mut AssetManager,world:&mut World,platform:&mut Platform) ->Game
 {
     
-    let diff_id = assets.load_texture_from_file("Assets/textures/difficulty.png");
+    let diff_id = assets.load(Texture{path:"Assets/textures/difficulty.png".to_string()});
 
+    let window = platform.create_window(Window{
+        title:"zombiedash".to_string(),
+        dimensions:(1920, 1080),
+        is_primary:false,
+        windowref:None
+    });
+    let defaultmesh =  assets.load(Mesh::rectangle(1.0, 1.0,1.0));
+    let cube = assets.load(Mesh::cube(1.0, 1.0));
+    let pyramid = assets.load(Mesh::pyramid(1.0, 1.0));
     world.spawn( (
     Render{
-        texture_id:Some(assets.load_texture_from_file("Assets/textures/backround.png")),
-        shader_id:0,
+        texture_id:Some(assets.load(Texture{path:"Assets/textures/backround.png".to_string()})),
+        shader_id:None,
+        mesh_id:cube,
         renderlayers:(0,1)
     }, Transform{
-        scale:vec3(1920.0, 1080.0, 1.0),
-        position:vec3(0.0, 0.0, 0.0),
-        rotation:0.0
+        scale:vec3(1920.0, 1080.0, -1.0),
+        position:vec3(0.0, 0.0, -2.0),
+        rotation: vec3(0.0,0.0,0.0), 
     }
     ));
 
     let diff = world.spawn((Render{
         texture_id:Some(diff_id),
-        shader_id:0,
+        mesh_id:defaultmesh,
+        shader_id:None,
         renderlayers:(0,1)
     }, 
     Transform{
         scale:vec3(1920.0,500.0,-0.6,),
         position:vec3(0.0, 0.0, 0.0),
-        rotation:0.0
+        rotation: vec3(0.0,0.0,0.0), 
     }
     ));
 
 
     let player = Player::create(
-        assets.load_texture_from_file("Assets/textures/zombie.png"),
-        80.0*1.2, 70.0*1.2, -0.1,
-        0
-        ,world
+        &assets.load(Texture{path:"Assets/textures/zombie.png".to_string()}),
+        96.0, 84.0, -0.1,
+        world,&cube
     );
    
     let transform = world.get_transfom(&player.entity);
@@ -76,45 +87,48 @@ fn startup(assets:&mut AssetManager,world:&mut World,platform:&mut Platform) ->G
     
     
 
-    let title_id = assets.load_texture_from_file("Assets/textures/ZombieDash.png");
+    let title_id = assets.load(Texture{path:"Assets/textures/ZombieDash.png".to_string()});
     let title = world.spawn((Render{
         texture_id:Some(title_id),
-        shader_id:0,
+        mesh_id:defaultmesh,
+        shader_id:None,
         renderlayers:(0,1)
     }, 
     Transform{
         scale:vec3(1200.0, 700.0, -0.6),
         position:vec3(0.0, 0.0, 0.0),
-        rotation:0.0
+        rotation: vec3(0.0,0.0,0.0), 
     }
     ));
 
     
-    let choice_id = assets.load_texture_from_file("Assets/textures/playagain.png");
+    let choice_id = assets.load(Texture{path:"Assets/textures/playagain.png".to_string()});
     let choice = world.spawn((Render{
         texture_id:Some(choice_id),
-        shader_id:0,
+        mesh_id:defaultmesh,
+        shader_id:None,
         renderlayers:(0,0)
     }, 
     Transform{
         scale:vec3(1920.0,300.0,-0.6,),
         position:vec3(0.0, 0.0, 0.0),
-        rotation:0.0
+        rotation: vec3(0.0,0.0,0.0), 
     }
     ));
         
         
     
-    let over_id = assets.load_texture_from_file("Assets/textures/gameover.png");
+    let over_id = assets.load(Texture{path:"Assets/textures/gameover.png".to_string()});
     let over = world.spawn((Render{
         texture_id:Some(over_id),
-        shader_id:0,
+        mesh_id:defaultmesh,
+        shader_id:None,
         renderlayers:(0,0)
     }, 
     Transform{
         scale:vec3(1920.0,500.0,-0.6,),
         position:vec3(0.0, 0.0, 0.0),
-        rotation:0.0
+        rotation: vec3(0.0,0.0,0.0), 
     }
     ));
     
@@ -123,15 +137,16 @@ fn startup(assets:&mut AssetManager,world:&mut World,platform:&mut Platform) ->G
     
     let mut scene1 = Scene::create();
     scene1.checkleveldat();
-    let window = platform.create_window(1920, 1080, "zombiedash");
+    
 
 
 
     world.spawn(Camera {
-        position: vec3(0.0, 0.0, 0.0),
-        rotation: 0.0,
+        position: vec3(0.0, 0.0, -2.0),
+        rotation:  vec3(0.0,0.0,0.0), 
         renderlayers: (1, 1),
         targetwindow: window.clone(),
+        ..Camera::camera2d()
     });
     
     
@@ -144,9 +159,10 @@ fn startup(assets:&mut AssetManager,world:&mut World,platform:&mut Platform) ->G
           title, choice, over, 
           state: 5, 
           getkey: false ,
-          spike_id:assets.load_texture_from_file("Assets/textures/spike.png"),
+          spike_id:assets.load(Texture{path:"Assets/textures/spike.png".to_string()}),
           scene:Some(scene1),
-          diff
+          diff,
+          mesh:pyramid
     }
         
 }
@@ -157,8 +173,8 @@ fn main()
 {
     
     App::new()
-    .add_startupstate_system(startup)
-    .add_updatestate_system(update1)
+    .add_startup_system(startup)
+    .add_update_system(update1)
     .run();
 
     
@@ -225,7 +241,7 @@ fn update1(_assets:&mut AssetManager,world:&mut World,platform:&mut Platform,gam
         if game.getkey{player.moved(platform,world.get_transfom(&player.entity),&delta_time,&game.window,)};
         
         
-        scene1.spawn_spikes(game.spike_id,world);
+        scene1.spawn_spikes(game.spike_id,world,&game.mesh);
 
         let temp = world.get_render(&game.title);
         if !game.getkey {
@@ -267,6 +283,8 @@ fn update1(_assets:&mut AssetManager,world:&mut World,platform:&mut Platform,gam
             let temp = world.get_transfom(&player.entity);
             temp.position.x = -400.0;
             temp.position.y = -500.0;
+            temp.rotation =  vec3(0.0,0.0,0.0);
+            player.rotationstate =  vec3(0.0,0.0,0.0);
             game.state = 5;
         }
         if platform.Key_is_pressed(&game.window, KeyCode::N)

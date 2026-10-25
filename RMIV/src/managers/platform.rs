@@ -6,7 +6,7 @@ use crate::prelude::*;
 pub struct Platform
 {
     pub runtime:glfw::Glfw,
-    pub windows:WindowManager
+    pub windowmanager:WindowManager
 }
 
 
@@ -15,53 +15,47 @@ impl Platform
     pub fn new() ->Platform
     {
         let mut runtime = glfw::init(fail_on_errors).unwrap();
-        let windows = WindowManager::new(&mut runtime);
-        Platform { runtime, windows }
+        
+        let windowmanager = WindowManager::new(&mut runtime);
+        Platform { runtime, windowmanager }
 
     }
     pub fn update_events(&mut self)
     {
         self.runtime.poll_events();
-        self.windows.update_events();
+        self.windowmanager.update_events();
     }
     pub fn delta_time(&mut self,window_handle:&WindowHandle) -> f32
     {
-        let window = self.windows.get_mut(window_handle);
+        let window = self.windowmanager.get_mut(window_handle,false);
         let window = match window{
-            Some(wind) => wind,
-            None => return 0.0,
+            Ok(wind) => wind,
+            Err(error) => {println!("failed to get window due to {} unable to calculate delta time",error);return 0.0},
         };
         return window.delta_time(self.runtime.get_time())
     }
     pub fn close_window(&mut self,windowhandle:WindowHandle)
     {
-        if let Some(wind) = self.windows.get_mut(&windowhandle)
+        if let Ok(wind) = self.windowmanager.get_mut(&windowhandle,false)
         {
             wind.window.set_should_close(true);
         }
 
     }
-    pub fn create_shared(&mut self,width:u32,height:u32,window_title:&str,primarywindow:&WindowHandle) ->WindowHandle
+    pub fn create_window(&mut self,windowdata:Window) -> WindowHandle
     {
-        self.windows.create_shared(&mut self.runtime,primarywindow,width, height, window_title)
+        self.windowmanager.create_window(&mut self.runtime, windowdata)
     }
-    pub fn create_window(&mut self,width:u32,height:u32,window_title:&str) ->WindowHandle
-    {
-        self.windows.create_window(&mut self.runtime, width, height, window_title)
-    }
-    pub fn create_primary_window(&mut self,width:u32,height:u32,window_title:&str) ->WindowHandle
-    {
-        self.windows.create_primary(&mut self.runtime, width, height, window_title)
-    }
+    
     
     #[allow(non_snake_case)]
     fn get_KeyCode(&self,window_handle:&WindowHandle, KeyCode: KeyCode) -> Option<Action> {
         unsafe 
         { 
             let window =  
-            match self.windows.get(window_handle){
-                Some(wind) => wind,
-                None => return None,
+            match self.windowmanager.get(window_handle,false){
+                Ok(wind) => wind,
+                Err(error) => {println!("failed to get window due to {}",error);return None},
             };
             std::mem::transmute(glfw::ffi::glfwGetKey(window.window.window_ptr(), KeyCode as std::os::raw::c_int)) 
         }     
@@ -71,9 +65,9 @@ impl Platform
     {
         unsafe { 
             let window = 
-            match self.windows.get(window_handle){
-                Some(wind) => wind,
-                None => return None,
+            match self.windowmanager.get(window_handle,true){
+                Ok(wind) => wind,
+                Err(error) => {println!("failed to get window due to {}",error);return None},
             };
             mem::transmute(glfw::ffi::glfwGetMouseButton(window.window.window_ptr(), MouseButton as std::os::raw::c_int)) 
         }

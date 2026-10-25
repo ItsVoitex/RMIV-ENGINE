@@ -2,4 +2,12 @@ pub mod mesh;
 pub mod shader;
 pub mod texture;
 pub mod renderer;
-pub use {mesh::Mesh,shader::Shader,texture::Texture,renderer::Renderer};
+
+
+pub mod prelude {
+    pub use crate::renderer::mesh::Mesh;
+}
+pub mod backend {
+    pub use crate::renderer::{mesh::{MeshInstance,Mesh},shader::Shader,texture::TextureInstance,renderer::Renderer};
+
+}

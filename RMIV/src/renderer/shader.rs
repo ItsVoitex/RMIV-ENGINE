@@ -13,32 +13,50 @@ impl  Shader{
         #version 330 core
         layout (location = 0) in vec3 aPos;
         layout (location = 1) in vec2 aTexCoord;
+        layout (location = 2) in vec3 aColor;
         out vec2 texCoord;
+        out vec3 Color;
         uniform vec3 offset;
-        uniform float rotation;
+        uniform vec3 rotation;
         uniform vec3 scale;
+
+        uniform mat4 model;
+        uniform mat4 view;
+        uniform mat4 proj;
+
         void main()
         {
-            float angle = radians(rotation);
-            float s = sin(angle);\
+            float angle = radians(rotation.x);
+            float s = sin(angle);
             float c = cos(angle);
             vec3 position = aPos * scale;
-            position = position + offset;
-            position.x = position.x  / 960;
-            position.y = position.y / 540 ;
             position.xy = mat2(c,-s,s,c) *position.xy;
-            gl_Position = vec4(position, 1.0);
+            position = position + offset;
+            //position.xy /= 970;
+            
+            gl_Position = proj * view * model vec4(position, 1.0);
             texCoord = aTexCoord;
+            Color = aColor; 
         }
         "#;
         const FRAGMENT_SOURCE:&str = r#"
         #version 330 core
         out vec4 FragColor;
         in vec2 texCoord;
+        in vec3 Color;
+        uniform bool has_texture;
         uniform sampler2D texture1;
         void main()
         {
-            FragColor = texture(texture1 ,texCoord);
+            if (has_texture)
+            {
+                FragColor = texture(texture1 ,texCoord) * vec4(Color,1.0); 
+            }
+            else
+            {
+                FragColor = vec4(Color,1.0); 
+            }   
+             
         }
         "#;
 
@@ -49,6 +67,7 @@ impl  Shader{
         let fragment_shader;
         let shader_program;
         unsafe {
+            let mut info_log:[i8;512] = [0;512];
             vertex_shader = gl::CreateShader(gl::VERTEX_SHADER);
             gl::ShaderSource(vertex_shader, 1, &vertex_shader_source.as_ptr(), std::ptr::null());
             gl::CompileShader(vertex_shader);
@@ -57,6 +76,12 @@ impl  Shader{
             gl::GetShaderiv(vertex_shader, gl::COMPILE_STATUS, &mut success);
             if success == 0
             {
+                gl::GetShaderInfoLog(vertex_shader, 512,std::ptr::null_mut(),info_log.as_mut_ptr());
+                let chars:Vec<char> = info_log.iter().map(|&byte| (byte as u8) as char).collect();
+                for i in chars.iter()
+                {
+                    print!("{}",i);
+                }
                 println!("failed to compile vertex shader");
             }
 
@@ -66,13 +91,18 @@ impl  Shader{
 
             let mut success = 0;
             gl::GetShaderiv(fragment_shader, gl::COMPILE_STATUS, &mut success);
-            let mut info_log:[i8;512] = [0;512];
+            
+            
             //need to add proper error reporting
             if success == 0
             {
-                gl::GetShaderInfoLog(vertex_shader, 512,std::ptr::null_mut(),info_log.as_mut_ptr());
-
-                println!("failed to compile fragment shader");
+                gl::GetShaderInfoLog(fragment_shader, 512,std::ptr::null_mut(),info_log.as_mut_ptr());
+                let chars:Vec<char> = info_log.iter().map(|&byte| (byte as u8) as char).collect();
+                for i in chars.iter()
+                {
+                    print!("{}",i);
+                }
+                println!("failed to compile fragment shader ");
             }
 
             shader_program = gl::CreateProgram();
@@ -103,6 +133,7 @@ impl  Shader{
         let fragment_shader;
         let shader_program;
         unsafe {
+            let mut info_log:[i8;512] = [0;512];
             vertex_shader = gl::CreateShader(gl::VERTEX_SHADER);
             gl::ShaderSource(vertex_shader, 1, &vertex_shader_source.as_ptr(), std::ptr::null());
             gl::CompileShader(vertex_shader);
@@ -111,6 +142,12 @@ impl  Shader{
             gl::GetShaderiv(vertex_shader, gl::COMPILE_STATUS, &mut success);
             if success == 0
             {
+                gl::GetShaderInfoLog(vertex_shader, 512,std::ptr::null_mut(),info_log.as_mut_ptr());
+                let chars:Vec<char> = info_log.iter().map(|&byte| (byte as u8) as char).collect();
+                for i in chars.iter()
+                {
+                    print!("{}",i);
+                }
                 println!("failed to compile vertex shader");
             }
 
@@ -120,12 +157,18 @@ impl  Shader{
 
             let mut success = 0;
             gl::GetShaderiv(fragment_shader, gl::COMPILE_STATUS, &mut success);
-            let mut info_log:[i8;512] = [0;512];
+            
+            
+            //need to add proper error reporting
             if success == 0
             {
-                gl::GetShaderInfoLog(vertex_shader, 512,std::ptr::null_mut(),info_log.as_mut_ptr());
-
-                println!("failed to compile fragment shader");
+                gl::GetShaderInfoLog(fragment_shader, 512,std::ptr::null_mut(),info_log.as_mut_ptr());
+                let chars:Vec<char> = info_log.iter().map(|&byte| (byte as u8) as char).collect();
+                for i in chars.iter()
+                {
+                    print!("{}",i);
+                }
+                println!("failed to compile fragment shader ");
             }
 
             shader_program = gl::CreateProgram();
@@ -134,6 +177,7 @@ impl  Shader{
             gl::LinkProgram(shader_program);
 
             gl::GetProgramiv(shader_program, gl::LINK_STATUS, &mut success);
+            //need to add proper error reporting
             if success == 0
             {
                 println!("failed to link shaders");
@@ -144,6 +188,7 @@ impl  Shader{
             Shader (
                 shader_program
             )
+        
         }
     }
 

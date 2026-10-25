@@ -6,9 +6,13 @@ pub mod templates;
 
 
 pub mod prelude {
-    pub use crate::application::{app::{App,SystemType::{Startup,Update}}};
-    pub use crate::templates;
-    pub use crate::managers::{platform::Platform,window::WindowHandle,asset::AssetManager,world::{World,Entity,Transform,Render,Hitbox,Camera},input::{KeyCode::*,KeyCode},Action,MouseButton};
+    pub use crate::application::{app::{App,}};
+    pub use crate::managers::prelude::*;
     pub use glam::{vec2,vec3,vec4,Vec2,Vec3,Vec4};
     
+}
+pub mod backend{
+    pub use crate::renderer::backend::*;
+    pub use crate::managers::backend::*;
+    pub use glam::{vec2,vec3,vec4,Vec2,Vec3,Vec4};
 }

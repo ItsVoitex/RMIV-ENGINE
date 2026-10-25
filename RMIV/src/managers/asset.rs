@@ -1,105 +1,177 @@
-use std::collections::HashMap;
-use crate::{renderer::{Mesh, Shader, Texture}};
+use crate::backend::*;
 
-pub struct AssetManager
+pub trait Asset {
+    fn add_to(self, assets: &mut AssetManager,handle:&AssetHandle);
+    
+}
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug,)]
+pub struct AssetHandle
 {
-    pub textures:HashMap<u32,Texture>,
-    pub shaders:HashMap<u32,Shader>,
-    pub meshes:HashMap<u32,Mesh>,
-    used_paths:HashMap<String,u32>,
-    shader_index:u32,
-    texture_index:u32,
+    id:u32,
+    generation:u32
+}
+pub struct Texture
+{
+    pub path:String,
+}
+#[derive(Clone)]
+pub struct CustomShader
+{
+    pub vertex_path:String,
+    pub fragment_path:String,
 }
 
+
+
+pub struct Storage<T,U> {
+    handles: Vec<AssetHandle>,
+    assetdata: Vec<T>,
+    asset: Vec<U>,
+    asset_to_index: Vec<Option<usize>>,
+}
+pub struct AssetManager
+{
+    pub textures:Storage<Texture,TextureInstance>,
+    pub shaders:Storage<CustomShader,Shader>,
+    pub meshes:Storage<Mesh,MeshInstance>,
+    freehandles:Vec<AssetHandle>,
+    index:u32
+}
+impl Asset for Texture
+{
+    fn add_to(self, assets: &mut AssetManager,handle:&AssetHandle)
+    {
+        assets.textures.asset.push(TextureInstance::create(&self.path));
+        assets.textures.handles.push(handle.clone());
+        assets.textures.assetdata.push(self);
+        assets.textures.asset_to_index[handle.id as usize] = Some(assets.textures.assetdata.len() -1);
+    }
+}
+impl Asset for CustomShader
+{
+    fn add_to(self, assets: &mut AssetManager,handle:&AssetHandle)
+    {
+        assets.shaders.asset.push(Shader::create(&self.vertex_path,& self.fragment_path));
+        assets.shaders.handles.push(handle.clone());
+        assets.shaders.assetdata.push(self);
+        assets.shaders.asset_to_index[handle.id as usize] = Some(assets.shaders.assetdata.len() -1);
+    }
+}
+impl Asset for Mesh
+{
+   fn add_to(self, assets: &mut AssetManager,handle:&AssetHandle)
+    {
+        assets.meshes.asset.push(MeshInstance::gendata(&self));
+        assets.meshes.handles.push(handle.clone());
+        assets.meshes.assetdata.push(self);
+        assets.meshes.asset_to_index[handle.id as usize] = Some(assets.meshes.assetdata.len() -1);
+    } 
+}
+impl <A:Asset,B:Asset> Asset for (A,B) {
+    fn add_to(self, assets: &mut AssetManager,handle:&AssetHandle)
+    {
+        self.0.add_to(assets, handle);
+        self.1.add_to(assets, handle);
+    }
+}
+impl <A:Asset,B:Asset,C:Asset> Asset for (A,B,C) {
+    fn add_to(self, assets: &mut AssetManager,handle:&AssetHandle)
+    {
+        self.0.add_to(assets, handle);
+        self.1.add_to(assets, handle);
+        self.2.add_to(assets, handle);
+    }
+}
+impl <T,U>Storage<T,U>
+{
+    pub fn new() -> Storage<T,U>
+    {
+        Storage { handles: Vec::new(), assetdata: Vec::new(),asset:Vec::new(), asset_to_index: Vec::new() }
+    }
+    pub fn get_asset(&self,entity:&AssetHandle) -> Option<&U>
+    {
+        if let Some(index) = self.asset_to_index[entity.id as usize]
+        {
+            if self.handles[index] == *entity
+            {
+                return Some(&self.asset[index]);
+            }
+            return None;
+        }
+        return None;
+        
+    }
+     pub fn get_assetdata(&self,entity:&AssetHandle) -> Option<&T>
+    {
+        if let Some(index) = self.asset_to_index[entity.id as usize]
+        {
+            if self.handles[index] == *entity
+            {
+                return Some(&self.assetdata[index]);
+            }
+            return None;
+        }
+        return None;
+        
+    }
+    pub fn destroy(&mut self,entity:&AssetHandle)
+    {
+        let index = self.asset_to_index[entity.id as usize];
+        match index {
+            Some(pos) => {
+                self.asset_to_index[self.handles[self.handles.len() -1].id as usize] = Some(pos);
+                self.handles.swap_remove(pos);
+                self.assetdata.swap_remove(pos);
+                self.asset.swap_remove(pos);
+                self.asset_to_index[entity.id as usize] = None;
+                
+            },
+            None =>{},
+        }
+    }
+}
 impl AssetManager
 {
     pub fn new() -> AssetManager
     {
         AssetManager 
         { 
-            textures: HashMap::new(), 
-            shaders: HashMap::new(), 
-            meshes: HashMap::new(),
-            used_paths:HashMap::new(),
-            shader_index:0,
-            texture_index:0,
+            textures: Storage::new(), 
+            shaders: Storage::new(), 
+            meshes:Storage::new(),
+            freehandles:Vec::new(),
+            index:0
         }
     }
-    //since this one is a little long pretty much it generates textures meshes or shaders returning an id
-    pub fn load_texture_from_file(&mut self,texture_path:&str) -> u32
+    pub fn load<T:Asset>(&mut self,asset:T) -> AssetHandle
     {
-        if let Some(_id) = self.used_paths.get(texture_path)
+        if self.freehandles.len() > 0
         {
-                return *_id;
+            let mut handle = self.freehandles.remove(0);
+            handle.generation += 1;
+            asset.add_to(self,&handle);
+            handle
+        }
+        else 
+        {
+            let entity = AssetHandle { id: self.index, generation: 0 };
+            self.textures.asset_to_index.push(None);
+            self.shaders.asset_to_index.push(None);
+            self.meshes.asset_to_index.push(None);
+            self.index += 1;
+            asset.add_to(self,&entity);
+            entity
         }
         
-        self.textures.insert(self.texture_index, Texture::create(texture_path));
-        self.used_paths.insert(texture_path.to_string(),self.texture_index);
-        let temp = self.texture_index;
-        self.texture_index += 1;
-        return temp;   
     }
-    pub fn get_texture_id(&self,texture_path:&str) -> u32
+    pub fn unload(&mut self,handle:AssetHandle)
     {
-        if let Some(_id) = self.used_paths.get(texture_path)
-        {
-            return *_id;
-        }
-        else {
-            panic!("failed to get texture with path: {}",texture_path);
-        }
+        self.textures.destroy(&handle);
     }
 
-    pub fn load_shader_from_file(&mut self,shader_path:&[&str;2]) -> u32
-    {
-        if let Some(_id) = self.used_paths.get(shader_path[0])
-        {
-            return *_id;
-        }
-        self.shaders.insert(self.shader_index, Shader::create(shader_path[0],shader_path[1]));
-        self.used_paths.insert( shader_path[0].to_string(),self.shader_index);
-        let temp = self.shader_index;
-        self.shader_index += 1;
-        return temp;
-    }
-    pub fn get_shader_id(&self,shader_path:&[&str;2]) ->u32
-    {
-        if let Some(_id) = self.used_paths.get(shader_path[0])
-        {
-            return *_id;
-        }
-        else {
-            panic!("failed to get shader with path: {} and {}",shader_path[0],shader_path[1]);
-        }
-    }
-
-
-    pub fn load_default_shader(&mut self) -> u32
-    {
-        self.shaders.insert(self.shader_index, Shader::create_default());
-        self.used_paths.insert("default-shader".to_string(), self.shader_index);
-        let temp = self.shader_index;
-        self.shader_index += 1;
-        return temp;
-    }
-    
-    
 
 
 }
 
 
-/*
-let vertices: [f32; 20] = [
-            width / 2.0,   height / 2.0,    depth,  0.0, 0.0,
-           -width / 2.0,   height / 2.0,    depth,  1.0, 0.0,
-           -width / 2.0,  -height / 2.0,    depth,  1.0, 1.0,
-            width / 2.0,  -height / 2.0,    depth,  0.0, 1.0,
-        ];
 
-        let indices: [u32; 6]= 
-        [
-            0,  1,  2,
-            0,  2,  3,
-        ];
- */

@@ -1,10 +1,11 @@
-use std::ffi::c_void;
+use std::{ffi::c_void};
 
-pub struct Texture(pub u32);
 
-impl Texture
+pub struct TextureInstance(pub u32);
+
+impl TextureInstance
 {
-    pub fn create(texture_path:&str) -> Texture{
+    pub fn create(texture_path:&str) -> TextureInstance{
         let img1 = image::open(texture_path);
         let img =  match img1 {
             Ok(file) => file,
@@ -13,7 +14,7 @@ impl Texture
                 panic!("failed to open {} due to {}",texture_path,error);
             }
         };
-        let img = img.flipv().fliph().into_rgba8();
+        let img = img.flipv().into_rgba8();
         let (iwidth,iheight) = img.dimensions();
         let data = img.as_raw() ;
         let mut texture = 0;
@@ -34,12 +35,12 @@ impl Texture
         
        
         
-        Texture(texture)
+        TextureInstance(texture)
     
     }
 }
 
-impl Drop for Texture
+impl Drop for TextureInstance
 {
     fn drop(&mut self)
     {

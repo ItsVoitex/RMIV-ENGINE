@@ -4,27 +4,35 @@
 
 
 use glfw::Glfw;
-use crate::renderer::renderer::deafultmesh;
 use glfw::{Context, GlfwReceiver,WindowEvent};
 
-use crate::renderer::{Mesh};
 
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy,PartialEq)]
 pub struct  WindowHandle
 {
     pub id:u32,
+    pub generation:u32,
     pub is_primary:bool
 }
 
-
+pub struct Window {
+    pub title:String,
+    pub dimensions:(u32,u32),
+    pub is_primary:bool,
+    pub windowref:Option<WindowHandle>
+}
+pub struct WindowStorage {
+    handles: Vec<WindowHandle>,
+    pub windows: Vec<WindowInstance>,
+    window_to_index: Vec<Option<usize>>,
+}
 pub struct WindowManager
 {
-    pub sharedwindows:Vec<Option<WindowInstance>>,
-    pub primarywindows:Vec<Option<WindowInstance>>,
-    pub primarymeshes:Vec<Option<Mesh>>,
-    pub sharedmeshes:Vec<Option<Mesh>>,
+    pub storage:WindowStorage,
     pub mainwind:WindowInstance,
+    freehandles:Vec<WindowHandle>,
+    nextid:u32,
 }
 pub struct WindowInstance 
 {
@@ -33,9 +41,102 @@ pub struct WindowInstance
     delta_time:f32,
     last_time:f64,
     current_time:f64,
-    frame_buffer:(i32,i32),
-    windinfo:(i32,i32,bool,bool),
+    pub frame_buffer:(i32,i32),
+    windinfo:WindowInfo,
     is_primary:bool,
+}
+pub struct WindowInfo
+{
+    width:i32,
+    height:i32,
+    is_fullscreen:bool,
+    is_pressed:bool,
+
+}
+impl WindowStorage
+{
+    pub fn new() -> WindowStorage
+    {
+        WindowStorage { handles: Vec::new(), windows: Vec::new(), window_to_index: Vec::new() }
+    }
+    pub fn get_window(&self,handle:&WindowHandle,fail_on_errors:bool) -> Result<&WindowInstance,&str>
+    {
+        if !fail_on_errors
+        {
+            if let Some(index) = self.window_to_index[handle.id as usize]
+            {
+                if self.handles[index] == *handle
+                {
+                    return Ok(&self.windows[index]);
+                }
+                return Err("invalid handle may be expired");
+            }
+            return Err("no window found");
+        }
+        else {
+            if let Some(index) = self.window_to_index[handle.id as usize]
+            {
+                if self.handles[index] == *handle
+                {
+                    return Ok(&self.windows[index]);
+                }
+                panic!("handle is expired");
+            }
+            panic!("failed to get index");
+        }
+    }
+    pub fn get_mut_window(&mut self,handle:&WindowHandle,fail_on_errors:bool) -> Result<&mut WindowInstance,&str>
+    {
+        if !fail_on_errors
+        {
+            if let Some(index) = self.window_to_index[handle.id as usize]
+            {
+                if self.handles[index] == *handle
+                {
+                    return Ok(&mut self.windows[index]);
+                }
+                return Err("invalid handle may be expired");
+            }
+            return Err("no window found");
+        }
+        else {
+            if let Some(index) = self.window_to_index[handle.id as usize]
+            {
+                if self.handles[index] == *handle
+                {
+                    return Ok(&mut self.windows[index]);
+                }
+                panic!("handle is expired");
+            }
+            panic!("failed to get index");
+        }
+    }
+           
+    pub fn should_close(&mut self) ->bool
+    {
+        if self.windows.len() > 0
+        {
+            true
+        }
+        else {
+            false
+        }
+    }
+    pub fn destroy(&mut self,handle:&WindowHandle)
+    {
+        let index = self.window_to_index[handle.id as usize];
+        match index {
+            Some(pos) => {
+                self.window_to_index[self.handles[self.handles.len() -1].id as usize] = Some(pos);
+                let mut window = self.windows.swap_remove(pos);
+                self.handles.swap_remove(pos);
+                self.window_to_index[handle.id as usize] = None;
+                window.close();
+                
+            },
+            None =>{},
+        }
+    }
 }
 impl WindowManager
 {
@@ -43,190 +144,92 @@ impl WindowManager
     {
         let mut mainwind = WindowInstance::create_primary(runtime, 1, 1, "mainwind");
         mainwind.window.hide();
-        WindowManager { sharedwindows: Vec::new(), primarywindows: Vec::new(), mainwind: mainwind,primarymeshes:Vec::new(),sharedmeshes:Vec::new() }
+        WindowManager { mainwind, storage: WindowStorage::new(),nextid:0,freehandles:Vec::new()}
     }
-    
-    pub fn create_window(&mut self,runtime:&mut Glfw,width:u32,height:u32,window_title:&str) -> WindowHandle
+    pub fn get(&self,windowhandle:&WindowHandle,fail_on_errors:bool) -> Result<&WindowInstance,&str>
     {
-        let wind = &self.mainwind;
-        let window = WindowInstance::create_shared(width, height, window_title, runtime,&wind);
-        self.sharedwindows.push(Some(window));
-
-
-        self.sharedmeshes.push(Some(deafultmesh()));
-        
-        return WindowHandle { id: self.sharedwindows.len() as u32 -1, is_primary: false }; 
+        self.storage.get_window(windowhandle,fail_on_errors)
     }
-    pub fn create_shared(&mut self,runtime:&mut Glfw,primarywindow:&WindowHandle,width:u32,height:u32,window_title:&str) -> WindowHandle
+    pub fn get_mut(&mut self,windowhandle:&WindowHandle,fail_on_errors:bool) -> Result<&mut WindowInstance,&str>
     {
-        if let Some(wind) = &self.primarywindows[primarywindow.id as usize]
+        self.storage.get_mut_window(windowhandle, fail_on_errors)
+    }
+
+    pub fn create_window(&mut self,runtime:&mut Glfw,windowdata:Window) -> WindowHandle
+    {
+        let mut _mainwindow:WindowInstance;
+        if !windowdata.is_primary && windowdata.windowref.is_none()
         {
-            let window = WindowInstance::create_shared(width, height, window_title, runtime,&wind);
-            self.sharedwindows.push(Some(window));
-
-            self.sharedmeshes.push(Some(deafultmesh()));
-        
-            return WindowHandle { id: self.sharedwindows.len() as u32 -1, is_primary: false };
+            let wind = &self.mainwind;
+            _mainwindow = WindowInstance::create_shared(windowdata.dimensions.0, windowdata.dimensions.1, &windowdata.title, runtime,&wind);
         }
         else {
-            panic!("window handle for primary window is not valid{}",primarywindow.id)
-        }  
-    }
-    pub fn create_primary(&mut self,runtime:&mut Glfw,width:u32,height:u32,window_title:&str) -> WindowHandle
-    {
-        let window = WindowInstance::create_primary(runtime,width, height, window_title);
-        self.primarywindows.push(Some(window));
+            if !windowdata.is_primary && windowdata.windowref.is_some()
+            {
+                let wind = self.storage.get_mut_window(&windowdata.windowref.unwrap(),true).unwrap();
+                _mainwindow = WindowInstance::create_shared(windowdata.dimensions.0, windowdata.dimensions.1, &windowdata.title, runtime,wind);
+            }
+            else{
+                if windowdata.is_primary 
+                {
+                    _mainwindow = WindowInstance::create_primary(runtime,windowdata.dimensions.0, windowdata.dimensions.1, &windowdata.title);
+            
+                }
+                else
+                {
+                    panic!("failed to create window missing windowdata")
+                } 
+            }
+        }
+        if self.freehandles.len() > 0 
+        {
+            self.storage.windows.push(_mainwindow);
+            let mut handle = self.freehandles.remove(0);
+            handle.generation +=1;
+            handle.is_primary = windowdata.is_primary;
+            return handle;
+        }
+        else {
+            let handle = WindowHandle{generation:0,id:self.nextid,is_primary:windowdata.is_primary};
+            self.storage.windows.push(_mainwindow);
+            self.storage.handles.push(handle.clone());
+            self.storage.window_to_index.push(Some(self.storage.windows.len()-1));
+            self.nextid+=1;
+            return handle;
 
-        self.primarymeshes.push(Some(deafultmesh()));
+        }
 
-        return WindowHandle { id: self.primarywindows.len() as u32 -1, is_primary: true };
     }
     pub fn update_events(&mut self)
     {
         
-        let mut remove_queue1: Vec<usize> = Vec::new();
-        let mut remove_queue2: Vec<usize> = Vec::new();
-        for i in 0..self.sharedwindows.len()
+        let mut remove_queue: Vec<WindowHandle> = Vec::new();
+        for i in 0..self.storage.windows.len()
         {   
-            if let Some(wind) = &mut self.sharedwindows[i]
+            let wind = &mut self.storage.windows[i];
+            
+            wind.toggle_fullscreen();
+            if wind.process_events() || wind.should_close()
             {
-                wind.toggle_fullscreen();
-                if wind.process_events() || wind.should_close()
-                {
-                    remove_queue1.push(i);
-                }
+                remove_queue.push(self.storage.handles[i].clone());
             }
-            else{
-                continue;
-            }
+            
+           
         }
-        for i in 0..self.primarywindows.len()
-        {   
-            if let Some(wind) = &mut self.primarywindows[i]
-            {
-                wind.toggle_fullscreen();
-                if wind.process_events() || wind.should_close()
-                {
-                    remove_queue2.push(i);
-                }
-            }
-            else{
-                continue;
-            }
-        }
-
         self.mainwind.make_current();
         
-               
-        
-        if remove_queue1.len() > 0 || remove_queue2.len() > 0
+        if remove_queue.len() > 0
         {
-            for i in 0..remove_queue1.len()
+            for i in 0..remove_queue.len()
             {
-                self.sharedwindows[remove_queue1[i]] = None;
-                self.sharedmeshes[remove_queue1[i]] = None;
-
-            }
-            for i in 0..remove_queue2.len()
-            {
-                self.primarywindows[remove_queue2[i]] = None;
-                self.primarymeshes[remove_queue2[i]] = None;
+                self.storage.destroy(&remove_queue[i]);
+                self.freehandles.push(remove_queue[i]);
 
             }
         }
         
     }
-    pub fn get(&self,handle:&WindowHandle) -> Option<&WindowInstance>
-    {
-        if handle.is_primary == true
-        {
-            if (handle.id as usize) < self.primarywindows.len()
-            {
-                let val = &self.primarywindows[handle.id as usize];
-                match val{
-                    Some(val) => return Some(val),
-                    None=> return None,
-                }
-            }
-            else {
-                panic!("failed to find window with that id out of bounds error {}",handle.id)
-            }
-        }
-        else {
-            if (handle.id as usize) < self.sharedwindows.len()
-            {
-                let val = &self.sharedwindows[handle.id as usize];
-                match val{
-                    Some(val) => return Some(val),
-                    None=> return None,
-                }
-            }
-            else {
-                panic!("failed to find window with that id out of bounds error {}",handle.id)
-            }
-        }
-    }
-    pub fn get_mesh(&mut self,handle:&WindowHandle) -> Option<&mut Mesh>
-    {
-        if handle.is_primary == true
-        {
-            if (handle.id as usize) < self.primarymeshes.len()
-            {
-                let val = &mut self.primarymeshes[handle.id as usize];
-                match val{
-                    Some(val) => return Some(val),
-                    None=> return None,
-                }
-            }
-            else {
-                panic!("failed to find mesh with that id out of bounds error {}",handle.id)
-            }
-        }
-        else {
-            if (handle.id as usize) < self.sharedmeshes.len()
-            {
-                let val = &mut self.sharedmeshes[handle.id as usize];
-                match val{
-                    Some(val) => return Some(val),
-                    None=> return None,
-                }
-            }
-            else {
-                panic!("failed to find mesh with that id out of bounds error {}",handle.id)
-            }
-        }
-    
-    }
-    pub fn get_mut(&mut self,handle:&WindowHandle) -> Option<&mut WindowInstance>
-    {
-        if handle.is_primary == true
-        {
-            if (handle.id as usize) < self.primarywindows.len()
-            {
-                let val = &mut self.primarywindows[handle.id as usize];
-                match val{
-                    Some(val) => return Some(val),
-                    None=> return None,
-                }
-            }
-            else {
-                panic!("failed to find window with that id out of bounds error {}",handle.id)
-            }
-        }
-        else {
-            if (handle.id as usize) < self.sharedwindows.len()
-            {
-                let val = &mut self.sharedwindows[handle.id as usize];
-                match val{
-                    Some(val) => return Some(val),
-                    None=> return None,
-                }
-            }
-            else {
-                panic!("failed to find window with that id out of bounds error {}",handle.id)
-            }
-        }
-    }
+   
 }
 
 impl WindowInstance
@@ -247,7 +250,7 @@ impl WindowInstance
                     gl::Enable(gl::DEPTH_TEST);
                     
                 }
-                return WindowInstance { window, events: (_events), delta_time:0.0,last_time:0.0,current_time:0.0,frame_buffer:(width,height),is_primary:false,windinfo:(width as i32,height as i32,false,false)};    
+                return WindowInstance { window, events: (_events), delta_time:0.0,last_time:0.0,current_time:0.0,frame_buffer:(width,height),is_primary:false,windinfo:WindowInfo{width ,height,is_fullscreen:false,is_pressed:false}};    
             }
             else {
                 panic!("failed to create shared window");
@@ -282,7 +285,7 @@ impl WindowInstance
             last_time:0.0,
             current_time:0.0,
             frame_buffer:(width,height),
-            windinfo:(width as i32,height as i32,false,false),
+            windinfo:WindowInfo{width ,height,is_fullscreen:false,is_pressed:false},
             is_primary:true
         }
     }
@@ -312,7 +315,7 @@ impl WindowInstance
                     gl::Enable(gl::DEPTH_TEST);
                     
                 }
-                return WindowInstance{ window, events: (_events), delta_time:0.0,last_time:0.0,current_time:0.0,frame_buffer:(width,height),is_primary:false,windinfo:(width as i32,height as i32,false,false)};    
+                return WindowInstance{ window, events: (_events), delta_time:0.0,last_time:0.0,current_time:0.0,frame_buffer:(width,height),is_primary:false,windinfo:WindowInfo{width ,height,is_fullscreen:false,is_pressed:false}};    
             }
             else {
                 panic!("failed to create shared window");
@@ -357,19 +360,19 @@ impl WindowInstance
            
             
             let pressed = glfw::ffi::GLFW_PRESS == glfw::ffi::glfwGetKey(self.window.window_ptr(),glfw::ffi::GLFW_KEY_F11 as std::os::raw::c_int);
-            if pressed && self.windinfo.2 == true && !self.windinfo.3
+            if pressed && self.windinfo.is_fullscreen == true && !self.windinfo.is_pressed
             {
-                glfw::ffi::glfwSetWindowMonitor(self.window.window_ptr(),std::ptr::null_mut(), (*mode).width-self.windinfo.0 / 2, (*mode).height-self.windinfo.1 / 2, self.windinfo.0, self.windinfo.1, 0);
-                self.windinfo.2 = false;
+                glfw::ffi::glfwSetWindowMonitor(self.window.window_ptr(),std::ptr::null_mut(), (*mode).width-self.windinfo.width / 2, (*mode).height-self.windinfo.height / 2, self.windinfo.width, self.windinfo.height, 0);
+                self.windinfo.is_fullscreen = false;
   
             }
-            else {if pressed && self.windinfo.2 == false && !self.windinfo.3 {
+            else {if pressed && self.windinfo.is_fullscreen == false && !self.windinfo.is_pressed {
                 glfw::ffi::glfwSetWindowMonitor(self.window.window_ptr(), monitor, 0, 0, (*mode).width, (*mode).height, (*mode).refreshRate);
-                self.windinfo.2 = true;
+                self.windinfo.is_fullscreen = true;
      
             }}
             
-            self.windinfo.3 = pressed;
+            self.windinfo.is_pressed = pressed;
         }
         
     }

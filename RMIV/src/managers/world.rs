@@ -1,7 +1,9 @@
 
 
 
-use crate::{managers::window::WindowHandle, prelude::*};
+use glam::Mat4;
+
+use crate::{managers::window::{WindowHandle, WindowInstance}, prelude::*};
 
 //let the user enter theeir own strcut values when doing add
 
@@ -36,7 +38,7 @@ pub struct Transform
 {
     pub position:Vec3,
     pub scale:Vec3,
-    pub rotation:f32,
+    pub rotation:Vec3,
 }
 #[derive(Copy, Clone,PartialEq,Debug,)]
 pub struct Hitbox
@@ -48,29 +50,96 @@ pub struct Hitbox
 #[derive(Copy, Clone)]
 pub struct Camera{
     pub position:Vec3,
-    pub rotation:f32,
+    pub rotation:Vec3,
+    pub fov:f32,
     pub renderlayers:(u32,u32),
     pub targetwindow:WindowHandle,
+    pub view:Mat4,
+    pub model:Mat4,
+    pub proj:Mat4,
+    pub is_2d:bool,    
+}
+impl Camera
+{
+    pub fn camera2d() ->Camera
+    {
+        let model = glam::Mat4::IDENTITY;
+        let view =glam::Mat4::from_translation(vec3(0.0,-0.5,-2.0)); 
+        let proj = glam::camera::rh::proj::opengl::orthographic(
+        -960.0, 960.0,   
+        -540.0, 540.0,   
+        0.1, 100.0,      
+        );
+      
+
+        Camera { 
+            position: vec3(0.0, 0.0, 0.0), 
+            rotation: vec3(0.0,0.0,0.0),
+            fov:0.0,
+            renderlayers: (0,0), 
+            targetwindow: WindowHandle { id: 0, generation: 0, is_primary: false }, 
+            view, 
+            model, 
+            proj,
+            is_2d:true
+        }
+    }
+    pub fn camera3d() -> Camera
+    {
+        let model = glam::Mat4::IDENTITY;
+        let view: Mat4 =  glam::Mat4::IDENTITY;
+        let proj: Mat4 =  glam::camera::rh::proj::opengl::perspective(60.0_f32.to_radians(), 1920.0/1080.0, 1.0, 100.0);
+    
+        Camera { 
+            position: vec3(0.0, 0.0, 0.0), 
+            rotation: vec3(0.0,0.0,0.0), 
+            renderlayers: (0,0), 
+            fov:60.0,
+            targetwindow: WindowHandle { id: 0, generation: 0, is_primary: false }, 
+            view, 
+            model, 
+            proj,
+            is_2d:false
+        }
+    }
+    pub fn updatecamera(&mut self,window:&WindowInstance)
+    {
+        if !self.is_2d
+        {   
+            self.proj = glam::camera::rh::proj::opengl::perspective(self.fov.to_radians(), window.frame_buffer.0 as f32/window.frame_buffer.1 as f32, 1.0, 100.0);
+        }
+        self.view = glam::Mat4::from_translation(self.position);
+    }
+    pub fn make3d(&mut self,fov:f32)
+    {
+        self.fov = fov;
+        self.is_2d = false;
+        self.proj = glam::camera::rh::proj::opengl::perspective(self.fov.to_radians(), 1920.0/1080 as f32, 1.0, 100.0);
+    }
+    pub fn make2d(&mut self)
+    {
+        self.is_2d = true;
+        self.proj  = glam::camera::rh::proj::opengl::orthographic(
+        -960.0, 960.0,   
+        -540.0, 540.0,   
+        0.1, 100.0,      
+        ); 
+    }
 }
 #[derive(Copy, Clone,PartialEq,Debug,)]
 pub struct Render
 {
-    pub texture_id:Option<u32>,
-    pub shader_id: u32,
+    pub texture_id:Option<AssetHandle>,
+    pub mesh_id:AssetHandle,
+    pub shader_id: Option<AssetHandle>,
     pub renderlayers:(u32,u32)
 }
 
-pub struct Window
-{
-    pub title:String,
-    pub resoluton:(u32,u32),
-    pub is_primary:bool,
-    pub windowref:Option<WindowHandle>
-}
+
 
 struct Storage<T> {
     entities: Vec<Entity>,
-    components: Vec<T>,
+    pub components: Vec<T>,
     entity_to_index: Vec<Option<usize>>,
 }
 pub struct World
@@ -90,15 +159,7 @@ impl Component for Transform
         world.transforms.entity_to_index[entity.id as usize] = Some(world.transforms.components.len() -1);
     }
 }
-/*impl Component for Window
-{
-    fn add_to(self, world: &mut World, entity: &Entity) {
-        world.windows.entities.push(entity.clone());
-        world.windows.components.push(self);
-        world.windows.entity_to_index[entity.id as usize] = Some(world.windows.components.len() -1);
-    }
-}
-    */
+
 impl Component for Hitbox
 {
     fn add_to(self, world: &mut World, entity: &Entity) {
@@ -196,6 +257,7 @@ impl <T>Storage<T>
             None =>{},
         }
     }
+    
 }
 
 impl World
@@ -211,6 +273,14 @@ impl World
             renders: Storage::new(),
             cameras: Storage::new(),
         }
+    }
+    pub fn update_cameras(&mut self,platform:&mut Platform)
+    {
+       for i in self.cameras.components.iter_mut() 
+       {
+            i.updatecamera(platform.windowmanager.get(&i.targetwindow, true).unwrap())
+       }
+        
     }
     pub fn spawn<T:Component>(&mut self,components:T) -> Entity
     {
@@ -364,6 +434,7 @@ impl World
         return vec;
   
     }
+    
 
     pub fn get_transfom(&mut self,entity:&Entity) -> &mut Transform
     {
@@ -479,36 +550,23 @@ impl World
                 }
                 return val;
             }
-            /*ComponentType::Window =>{
-                let mut val = Vec::new();
-                for i in 0..self.windows.entity_to_index.len()
-                {
-                    if let Some(index) =  &self.windows.entity_to_index[i]
-                    {
-                        val.push(self.windows.entities[*index].clone());
-                    }
-                    else {
-                        continue;
-                    }
-                }
-                return val;
-            }
-            */
+           
 
         }
     }
     pub fn check_collision(&mut self,entity:&Entity,entities:&Vec<&Entity>,skip_entities_with_no_hitbox:bool) ->bool
     {
-        if let Some(hitbox1) = &self.hitboxes.get_component(entity) && let Some(transform1) = &self.transforms.get_mut_component(entity)
+        if let Some(hitbox1) = self.hitboxes.get_component(entity) && let Some(transform1) = self.transforms.get_mut_component(entity)
         {
+            
             let tr = vec3( 0.5*hitbox1.x + transform1.position.x,   0.5*hitbox1.y + transform1.position.y,    0.5*hitbox1.z + transform1.position.z);
-            let bl = vec3(-0.5*hitbox1.x + transform1.position.x,  -0.5*hitbox1.y + transform1.position.y,    0.5*hitbox1.z + transform1.position.z);
+            let bl = vec3(-0.5*hitbox1.x + transform1.position.x,  -0.5*hitbox1.y + transform1.position.y,    -0.5*hitbox1.z + transform1.position.z);
             for i in 0..entities.len(){
-                if let Some(hitbox2) = &self.hitboxes.get_mut_component(&entities[i]) && let Some(transform2) = &self.transforms.get_mut_component(&entities[i])
+                if let Some(hitbox2) = self.hitboxes.get_mut_component(&entities[i]) && let Some(transform2) = self.transforms.get_mut_component(&entities[i])
                 {
                     let tr1 = vec3( 0.5*hitbox2.x + transform2.position.x,   0.5*hitbox2.y + transform2.position.y,    0.5*hitbox2.z + transform2.position.z);
-                    let bl1 = vec3(-0.5*hitbox2.x + transform2.position.x,  -0.5*hitbox2.y + transform2.position.y,    0.5*hitbox2.z + transform2.position.z);
-                    if (bl.x <= tr1.x && bl1.x <= tr.x) &&  (bl.y <= tr1.y && bl1.y <= tr.y) //&& (bl.z <= tr1.z && bl1.z <= tr.z)
+                    let bl1 = vec3(-0.5*hitbox2.x + transform2.position.x,  -0.5*hitbox2.y + transform2.position.y,    -0.5*hitbox2.z + transform2.position.z);
+                    if  (bl.x <= tr1.x && bl1.x <= tr.x) &&  (bl.y <= tr1.y && bl1.y <= tr.y) && (bl.z <= tr1.z && bl1.z <= tr.z)
                     {
                         return true;
                     }
@@ -528,9 +586,17 @@ impl World
         }
 
     }
-
+    
 }
 
+pub fn applyrotation(pos:Vec3,angle:f32) ->Vec3
+{
+    let angle = f32::to_radians(angle);
+    let s = f32::sin(angle);
+    let c = f32::cos(angle);
+    let x = glam::Mat2::from_cols(vec2(c, -s),vec2(s ,c)) *glam::vec2(pos.x, pos.y);
+    vec3(x.x, x.y, pos.z) 
+}
 
 
 /*two object collision

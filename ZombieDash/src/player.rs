@@ -9,32 +9,34 @@ pub struct Player
     pub entity:Entity,
     on_ground:bool,
     is_jumping:bool,
-    velocity:Vec3
+    velocity:Vec3,
+    pub rotationstate:Vec3
 }
 
 impl Player
 {
 
 
-    pub fn create(texture_id: u32,length:f32,width:f32,depth:f32, shader_id: u32,world:&mut World) -> Player
+    pub fn create(texture_id: &AssetHandle,length:f32,width:f32,depth:f32,world:&mut World,defaultmesh:&AssetHandle) -> Player
     {
         let entity = world.spawn((
             Transform
         {
             scale:vec3(length,width,depth),
             position:vec3(0.0, 0.0, 0.0),
-            rotation:0.0
+            rotation: vec3(0.0,0.0,0.0), 
         },
         Render
         {
-            texture_id:Some(texture_id),
-            shader_id:shader_id,
+            texture_id:Some(*texture_id),
+            shader_id:None,
+            mesh_id:*defaultmesh,
             renderlayers:(1,1)
         },
         Hitbox{
             x:50.0,
             y:50.0,
-            z:5.0,
+            z:50.0
         }
         ));
          
@@ -45,7 +47,8 @@ impl Player
             entity: entity,
             on_ground: false,
             is_jumping:false, 
-            velocity:vec3(0.0, 0.0, 0.0)
+            velocity:vec3(0.0, 0.0, 0.0),
+            rotationstate: vec3(0.0,0.0,0.0), 
         }
     }
 
@@ -58,6 +61,7 @@ impl Player
         
         if self.is_jumping
         {
+            transform.rotation.x += 45.0/12.5;
             self.velocity.y += 15000.0 * delta_time;
             transform.position.y += self.velocity.y * delta_time;
             if transform.position.y >= -280.0
@@ -68,25 +72,33 @@ impl Player
         }
         if !self.on_ground && !self.is_jumping
         {
+            
+            transform.rotation.x += 45.0/12.5;
             self.velocity.y -= 7000.0 *delta_time;
             transform.position.y += self.velocity.y * delta_time;
             if transform.position.y <= -500.0 
             {
+                transform.rotation.x = self.rotationstate.x;
+                self.rotationstate += 90.0;
+                
                 transform.position.y = -500.0;
                 self.velocity.y = 0.0;
                 self.on_ground = true
-            }
-            
-            
+            } 
         }
+        if transform.rotation.x > self.rotationstate.x && self.on_ground
+        {
+            transform.rotation.x -= 45.0/12.5/4.0;
+        }
+        
 
-        if moveleft
+        if moveleft && !(transform.position.x + 38.4*1.5/2.0 < -921.6)
         {
             transform.position.x -= 480.0 * delta_time;
            
             
         }
-        if moveright
+        if moveright && !(transform.position.x + 38.4*1.5/2.0 > 961.6)
         {
             transform.position.x += 480.0 * delta_time;
             
@@ -99,16 +111,7 @@ impl Player
 
         }
 
-        if transform.position.x + 38.4*1.5 < -921.6
-        {
-            transform.position.x = -921.6;   
-            
-        }
-        if transform.position.x > 961.6
-        {
-            transform.position.x = 908.6;   
-            
-        }
+        
     }
 
 

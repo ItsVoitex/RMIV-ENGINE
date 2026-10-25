@@ -73,7 +73,7 @@ impl Scene
     }
 
 
-    pub fn spawn_spikes(&mut self,spike_id:u32,world:&mut World)
+    pub fn spawn_spikes(&mut self,spike_id:AssetHandle,world:&mut World,defaultmesh:&AssetHandle)
     {
         
         let mut offset = 960.0;
@@ -81,7 +81,6 @@ impl Scene
         {
             if world.get_transfom(&self.objects[i]).position.x < -1000.0
             {
-                self.objects[i].printdata();
                 world.destroy(self.objects[i]);
                 self.objects.swap_remove(i);
             }
@@ -102,19 +101,20 @@ impl Scene
                     {
                         offset += 115.2;
                         let object = world.spawn((Transform{
-                            position:vec3(0.0,-520.0,0.0),
-                            scale:vec3(76.8*1.5, 70.0*1.3, -0.5),
-                            rotation:0.0
+                            position:vec3(0.0,-510.0,0.0),
+                            scale:vec3(96.0, 84.0, -0.1),
+                            rotation: vec3(0.0,0.0,0.0), 
                         },
                         Render{
-                            shader_id:0,
+                            shader_id:None,
+                            mesh_id:*defaultmesh,
                             texture_id:Some(spike_id),
                             renderlayers:(1,1),
                         },
                         Hitbox{
-                            x:76.8, 
-                            y:70.09,
-                            z:-0.5
+                            x:70.8, 
+                            y:60.09,
+                            z:65.0
                         }
                         ));
                         
