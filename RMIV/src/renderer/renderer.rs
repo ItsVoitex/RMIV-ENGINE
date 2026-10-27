@@ -17,7 +17,7 @@ pub struct Renderer
     model_name:CString,
     view_name:CString,
     projection_name:CString,
-    defaultshader:Shader,
+    defaultshader:ShaderInstance,
     
 }
 
@@ -54,7 +54,7 @@ impl Renderer
             model_name:CString::new("model").unwrap(),
             projection_name:CString::new("proj").unwrap(),
             hastexture_name:CString::new("has_texture").unwrap(),
-            defaultshader:Shader::create_default(),
+            defaultshader:ShaderInstance::create_default(),
         }
         
     }
@@ -74,6 +74,10 @@ impl Renderer
                 Ok(wind)=>wind,
                 _=>{continue},
             };
+            if !window.frameinfo.shouldrender
+            {
+                continue;
+            }
             window.make_current();
             window.begin_drawing();
 
@@ -83,8 +87,8 @@ impl Renderer
                 
                 if entities[j].0.renderlayers.0 <= cameras[i].renderlayers.1 && cameras[i].renderlayers.0 <= entities[j].0.renderlayers.1 
                 {
-                    if  entities[j].1.position.x > ( 960.0 + entities[j].1.scale.x/2.0) || 
-                        entities[j].1.position.x < (-960.0 - entities[j].1.scale.x/2.0) || 
+                    if  entities[j].1.position.x > ( 960.0 + entities[j].1.scale.x/2.0)  || 
+                        entities[j].1.position.x < (-960.0- entities[j].1.scale.x/2.0) || 
                         entities[j].1.position.y < (-540.0 - entities[j].1.scale.y/2.0) || 
                         entities[j].1.position.y > ( 540.0 + entities[j].1.scale.y/2.0)
                     {
@@ -104,9 +108,10 @@ impl Renderer
                         draw(renderer, None, entities[j],cameras[i],vericeslen);
                     }
                     
-                   
+                    
                 }
             }
+            window.frameinfo.fps +=1;
             window.end_drawing();
 
         }

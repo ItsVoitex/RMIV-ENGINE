@@ -3,7 +3,7 @@ mod player;
 mod scene;
 use scene::Scene;
 use player::Player;
-use rmiv_engine::prelude::*;
+use rmiv_engine::{backend::Mesh, managers::{asset::Texture}, prelude::*};
 /*
 max
 -921.6
@@ -15,86 +15,104 @@ min
 */
 // screen split into 25
 // 76.8 for gap
-pub struct Game{
-    player:Player,
-    worldoffset:Vec3,
-    window:WindowHandle
+
+pub struct Game
+{
+    window:WindowHandle,
+   
 }
+ pub fn gencube(width:f32,height:f32) -> Mesh
+    {
+         let vertices: Vec<Vec3>  = vec![ 
+            vec3(width / 2.0,  -height / 2.0,   width/2.0),
+            vec3(-width / 2.0,  -height / 2.0,  width/2.0),
+            vec3(-width / 2.0,   height / 2.0,  width/2.0),
+           vec3(width / 2.0,   height / 2.0,    width/2.0),
+
+            vec3(width / 2.0,  -height / 2.0,    -width/2.0),
+            vec3(-width / 2.0,  -height / 2.0,    -width/2.0),
+            vec3(-width / 2.0,   height / 2.0,    -width/2.0),
+           vec3(width / 2.0,   height / 2.0,    -width/2.0),
+        ];
+        let indices:Vec<u32>= vec!
+        [
+            0,  1,  2,
+            0,  2,  3,
+
+            4, 0, 3,
+            4, 3, 7,
+
+            5, 4, 7,
+            5, 7, 6,
+
+            1, 5, 6,
+            1, 6, 2,
+
+            4, 5, 1,
+            4, 1, 0,
+
+            3, 2, 6,
+            3, 6, 7
 
 
-fn startup(assets:&mut AssetManager,world:&mut World,platform:&mut Platform) -> Game
+        ];
+
+        let texture_cords:Vec<Vec2> = vec![
+            vec2(1.0, 0.0),
+            vec2(0.0, 0.0,),
+            vec2(0.0, 1.0,),
+            vec2(1.0, 1.0,),
+
+            vec2(1.0, 0.0),
+            vec2(0.0, 0.0,),
+            vec2(0.0, 1.0,),
+            vec2(1.0, 1.0,)
+        ];
+        Mesh { vertices, indices, color: None, texture_cords:Some(texture_cords) }
+    }
+fn startup(assets:&mut AssetManager,world:&mut World,platform:&mut Platform) ->Game
 {
     
-    let mut scene1 = Scene::create();
-    scene1.checkleveldat();
-    let window = platform.create_window(1920, 1080, "zombiedash");
+   
 
-
-
-    world.spawn(Camera2D {
-        position: vec3(0.0, 0.0, 0.0),
-        rotation: 0.0,
-        renderlayers: (1, 1),
-        targetwindow: window.clone(),
+    let window = platform.create_window(Window{
+        title:"zombiedash".to_string(),
+        dimensions:(1920, 1080),
+        targetfps:60,
+        is_primary:false,
+        windowref:None
     });
+   
 
-
+  
     
-    world.spawn( (
-    Render{
-        texture_id:Some(assets.load_texture_from_file("Assets/textures/backround.png")),
-        shader_id:0,
-        renderlayers:(0,1)
-    }, Transform{
-        scale:vec3(1920.0, 1080.0, 1.0),
-        position:vec3(0.0, 0.0, 0.0),
-        rotation:0.0
-    },));
-     let player = Player::create(
-        assets.load_texture_from_file("Assets/textures/zombie.png"),
-        80.0*1.2, 70.0*1.2, -0.1,
-        0
-        ,world
-    );
-    let worldoffset= vec3(0.0,0.0,0.0);
-    Game { player,worldoffset ,window}
+
+
+
+  
+    
+    
+    let speed = 800.0;
+
+      Game { 
+        window, 
+    }
+        
 }
 
 
 
 fn main()
 {
-    
     App::new()
     .add_startup_system(startup)
-    .add_update_system(update)
+    .add_update_system(update1)
     .run();
 
     
 }
-
-fn update(assets:&mut AssetManager,world:&mut World,platform:&mut Platform,game:&mut Game)
+ 
+fn update1(_assets:&mut AssetManager,world:&mut World,platform:&mut Platform,game:&mut Game)
 {
-    let deltatime = platform.delta_time(&game.window);
-    let mut x = world.query(rmiv_engine::managers::world::ComponentType::Transform);
-    for i in 0..x.len()
-    {
-        if x[i] == game.player.entity
-        {
-            x.remove(i);
-        }
-    }
-  
-    if game.player.moved(platform , &deltatime,&game.window ,&mut game.worldoffset)
-    {
-        for i in x.iter()
-        {
-           world.get_transfom(&i).position.x = game.worldoffset.x;
-            world.get_transfom(&i).position.y = game.worldoffset.y; 
-        }
-    }
-
     
-
 }
-

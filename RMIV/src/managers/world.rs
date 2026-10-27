@@ -64,7 +64,7 @@ impl Camera
     pub fn camera2d() ->Camera
     {
         let model = glam::Mat4::IDENTITY;
-        let view =glam::Mat4::from_translation(vec3(0.0,-0.5,-2.0)); 
+        let view = glam::Mat4::IDENTITY;
         let proj = glam::camera::rh::proj::opengl::orthographic(
         -960.0, 960.0,   
         -540.0, 540.0,   
@@ -278,7 +278,11 @@ impl World
     {
        for i in self.cameras.components.iter_mut() 
        {
-            i.updatecamera(platform.windowmanager.get(&i.targetwindow, true).unwrap())
+            let window = platform.windowmanager.get(&i.targetwindow, false);
+            if window.is_ok()
+            {
+                i.updatecamera(window.unwrap())
+            }  
        }
         
     }
@@ -558,14 +562,15 @@ impl World
     {
         if let Some(hitbox1) = self.hitboxes.get_component(entity) && let Some(transform1) = self.transforms.get_mut_component(entity)
         {
-            
-            let tr = vec3( 0.5*hitbox1.x + transform1.position.x,   0.5*hitbox1.y + transform1.position.y,    0.5*hitbox1.z + transform1.position.z);
-            let bl = vec3(-0.5*hitbox1.x + transform1.position.x,  -0.5*hitbox1.y + transform1.position.y,    -0.5*hitbox1.z + transform1.position.z);
+            let meshpos = applyrotation(vec2(0.5, -0.5), transform1.rotation.x);
+            let tr = vec3( meshpos.x*hitbox1.x + transform1.position.x,   meshpos.x*hitbox1.y + transform1.position.y,    meshpos.x*hitbox1.z + transform1.position.z);
+            let bl = vec3(meshpos.y*hitbox1.x + transform1.position.x,  meshpos.y*hitbox1.y + transform1.position.y,    meshpos.y*hitbox1.z + transform1.position.z);
             for i in 0..entities.len(){
                 if let Some(hitbox2) = self.hitboxes.get_mut_component(&entities[i]) && let Some(transform2) = self.transforms.get_mut_component(&entities[i])
                 {
-                    let tr1 = vec3( 0.5*hitbox2.x + transform2.position.x,   0.5*hitbox2.y + transform2.position.y,    0.5*hitbox2.z + transform2.position.z);
-                    let bl1 = vec3(-0.5*hitbox2.x + transform2.position.x,  -0.5*hitbox2.y + transform2.position.y,    -0.5*hitbox2.z + transform2.position.z);
+                    let meshpos2 = applyrotation(vec2(0.5, -0.5), transform2.rotation.x);
+                    let tr1 = vec3( meshpos2.x*hitbox2.x + transform2.position.x,   meshpos2.x*hitbox2.y + transform2.position.y,    meshpos2.x*hitbox2.z + transform2.position.z);
+                    let bl1 = vec3(meshpos2.y*hitbox2.x + transform2.position.x,  meshpos2.y*hitbox2.y + transform2.position.y,    meshpos2.y*hitbox2.z + transform2.position.z);
                     if  (bl.x <= tr1.x && bl1.x <= tr.x) &&  (bl.y <= tr1.y && bl1.y <= tr.y) && (bl.z <= tr1.z && bl1.z <= tr.z)
                     {
                         return true;
@@ -589,13 +594,13 @@ impl World
     
 }
 
-pub fn applyrotation(pos:Vec3,angle:f32) ->Vec3
+pub fn applyrotation(pos:Vec2,angle:f32) ->Vec2
 {
     let angle = f32::to_radians(angle);
     let s = f32::sin(angle);
     let c = f32::cos(angle);
-    let x = glam::Mat2::from_cols(vec2(c, -s),vec2(s ,c)) *glam::vec2(pos.x, pos.y);
-    vec3(x.x, x.y, pos.z) 
+    let x = glam::Mat2::from_cols(vec2(c, -s),vec2(s ,c)) *pos;
+    return x;
 }
 
 

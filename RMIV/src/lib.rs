@@ -8,6 +8,7 @@ pub mod templates;
 pub mod prelude {
     pub use crate::application::{app::{App,}};
     pub use crate::managers::prelude::*;
+    pub use crate::renderer::prelude::*;
     pub use glam::{vec2,vec3,vec4,Vec2,Vec3,Vec4};
     
 }

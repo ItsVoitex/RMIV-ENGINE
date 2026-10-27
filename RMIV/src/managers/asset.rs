@@ -2,6 +2,7 @@ use crate::backend::*;
 
 pub trait Asset {
     fn add_to(self, assets: &mut AssetManager,handle:&AssetHandle);
+
     
 }
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug,)]
@@ -21,7 +22,13 @@ pub struct CustomShader
     pub fragment_path:String,
 }
 
-
+impl CustomShader
+{
+    pub fn defaultshader() -> CustomShader
+    {
+        CustomShader { vertex_path: "default".to_string(), fragment_path: "default".to_string() }
+    }
+}
 
 pub struct Storage<T,U> {
     handles: Vec<AssetHandle>,
@@ -32,7 +39,7 @@ pub struct Storage<T,U> {
 pub struct AssetManager
 {
     pub textures:Storage<Texture,TextureInstance>,
-    pub shaders:Storage<CustomShader,Shader>,
+    pub shaders:Storage<CustomShader,ShaderInstance>,
     pub meshes:Storage<Mesh,MeshInstance>,
     freehandles:Vec<AssetHandle>,
     index:u32
@@ -46,12 +53,21 @@ impl Asset for Texture
         assets.textures.assetdata.push(self);
         assets.textures.asset_to_index[handle.id as usize] = Some(assets.textures.assetdata.len() -1);
     }
+ 
 }
 impl Asset for CustomShader
 {
     fn add_to(self, assets: &mut AssetManager,handle:&AssetHandle)
     {
-        assets.shaders.asset.push(Shader::create(&self.vertex_path,& self.fragment_path));
+        if self.vertex_path == "default" && self.fragment_path == "default"
+        {
+            assets.shaders.asset.push(ShaderInstance::create_default());
+            assets.shaders.handles.push(handle.clone());
+            assets.shaders.assetdata.push(self);
+            assets.shaders.asset_to_index[handle.id as usize] = Some(assets.shaders.assetdata.len() -1);
+            return;
+        }
+        assets.shaders.asset.push(ShaderInstance::create(&self.vertex_path,& self.fragment_path));
         assets.shaders.handles.push(handle.clone());
         assets.shaders.assetdata.push(self);
         assets.shaders.asset_to_index[handle.id as usize] = Some(assets.shaders.assetdata.len() -1);
@@ -65,7 +81,8 @@ impl Asset for Mesh
         assets.meshes.handles.push(handle.clone());
         assets.meshes.assetdata.push(self);
         assets.meshes.asset_to_index[handle.id as usize] = Some(assets.meshes.assetdata.len() -1);
-    } 
+    }
+ 
 }
 impl <A:Asset,B:Asset> Asset for (A,B) {
     fn add_to(self, assets: &mut AssetManager,handle:&AssetHandle)
@@ -74,6 +91,7 @@ impl <A:Asset,B:Asset> Asset for (A,B) {
         self.1.add_to(assets, handle);
     }
 }
+
 impl <A:Asset,B:Asset,C:Asset> Asset for (A,B,C) {
     fn add_to(self, assets: &mut AssetManager,handle:&AssetHandle)
     {
@@ -81,7 +99,10 @@ impl <A:Asset,B:Asset,C:Asset> Asset for (A,B,C) {
         self.1.add_to(assets, handle);
         self.2.add_to(assets, handle);
     }
+
 }
+
+
 impl <T,U>Storage<T,U>
 {
     pub fn new() -> Storage<T,U>
@@ -101,7 +122,7 @@ impl <T,U>Storage<T,U>
         return None;
         
     }
-     pub fn get_assetdata(&self,entity:&AssetHandle) -> Option<&T>
+    pub fn get_assetdata(&self,entity:&AssetHandle) -> Option<&T>
     {
         if let Some(index) = self.asset_to_index[entity.id as usize]
         {
@@ -114,7 +135,7 @@ impl <T,U>Storage<T,U>
         return None;
         
     }
-    pub fn destroy(&mut self,entity:&AssetHandle)
+    pub fn destroy(&mut self,entity:&AssetHandle) -> bool
     {
         let index = self.asset_to_index[entity.id as usize];
         match index {
@@ -124,9 +145,9 @@ impl <T,U>Storage<T,U>
                 self.assetdata.swap_remove(pos);
                 self.asset.swap_remove(pos);
                 self.asset_to_index[entity.id as usize] = None;
-                
+                return true;
             },
-            None =>{},
+            None =>{false},
         }
     }
 }
@@ -164,14 +185,124 @@ impl AssetManager
         }
         
     }
+    pub fn unload_all_textures(&mut self)
+    {
+        for i in &self.textures.handles.clone()
+        {
+            self.unload_texture(i);
+        }
+    }
+    pub fn unload_all_shaders(&mut self)
+    {
+        for i in &self.shaders.handles.clone()
+        {
+            self.unload_shader(i);
+        }
+    }
+     pub fn unload_all_meshes(&mut self)
+    {
+        for i in &self.meshes.handles.clone()
+        {
+            self.unload_mesh(i);
+        }
+    }
+    
+    pub fn unload_shader(&mut self,handle:&AssetHandle)
+    {
+        self.shaders.destroy(handle);
+    }
+    pub fn unload_mesh(&mut self,handle:&AssetHandle)
+    {
+        self.meshes.destroy(handle);
+    }
+    pub fn unload_texture(&mut self,handle:&AssetHandle)
+    {
+        self.textures.destroy(handle);
+    }
+
+    pub fn unload_all(&mut self)
+    {
+        self.unload_all_meshes();
+        self.unload_all_shaders();
+        self.unload_all_textures();
+    }
+
     pub fn unload(&mut self,handle:AssetHandle)
     {
-        self.textures.destroy(&handle);
+        if self.textures.destroy(&handle) || self.shaders.destroy(&handle) || self.meshes.destroy(&handle)
+        {
+            self.freehandles.push(handle);
+        }
+        
+    }
+    pub fn reload_shader(&mut self,handle:&AssetHandle)
+    {
+        let index = self.shaders.asset_to_index[handle.id as usize];
+        match index {
+            Some(pos) => {
+                self.shaders.asset[pos] = ShaderInstance::create(&self.shaders.assetdata[pos].vertex_path,&self.shaders.assetdata[pos].fragment_path);
+            },
+            None =>{},
+        }
+
+    }
+    pub fn reload_mesh(&mut self,handle:&AssetHandle)
+    {
+         let index = self.meshes.asset_to_index[handle.id as usize];
+        match index {
+            Some(pos) => {
+                self.meshes.asset[pos] = MeshInstance::gendata(&self.meshes.assetdata[pos]);
+            },
+            None =>{},
+        }
+    }
+    pub fn reload_texture(&mut self,handle:&AssetHandle)
+    {
+        let index = self.textures.asset_to_index[handle.id as usize];
+        match index {
+            Some(pos) => {
+                self.textures.asset[pos] = TextureInstance::create(&self.textures.assetdata[pos].path);
+            },
+            None =>{},
+        }
+    }
+    pub fn reload_all_textures(&mut self)
+    {
+        for i in &self.textures.handles.clone()
+        {
+            self.reload_texture(i);
+        }
+    }
+    pub fn reload_all_shaders(&mut self)
+    {
+        for i in &self.shaders.handles.clone()
+        {
+            self.reload_shader(i);
+        }
+    }
+    pub fn reload_all_meshes(&mut self)
+    {
+        for i in &self.meshes.handles.clone()
+        {
+            self.reload_mesh(i);
+        }
+    }
+
+    pub fn reload_all_assets(&mut self)
+    {
+        self.reload_all_meshes();
+        self.reload_all_shaders();
+        self.reload_all_textures();
     }
 
 
 
 }
-
+impl Drop for AssetManager
+{
+    fn drop(&mut self) {
+        self.unload_all();
+    }
+}
 
 

@@ -2,11 +2,11 @@ use std::ffi::CString;
 use std::fs;
 
 
-pub struct Shader (pub u32);
+pub struct ShaderInstance(pub u32);
 
-impl  Shader{
+impl  ShaderInstance{
 
-    pub fn create_default() -> Shader
+    pub fn create_default() -> ShaderInstance
     {
         //may be possible to do these calculations on the cpu
         const VERTEX_SOURCE:&str = r#"
@@ -32,7 +32,7 @@ impl  Shader{
             vec3 position = aPos * scale;
             position.xy = mat2(c,-s,s,c) *position.xy;
             position = position + offset;
-            //position.xy /= 970;
+            position.xy /= 540;
             
             gl_Position = proj * view * model vec4(position, 1.0);
             texCoord = aTexCoord;
@@ -119,12 +119,12 @@ impl  Shader{
 
             gl::DeleteShader(fragment_shader);
             gl::DeleteShader(vertex_shader); 
-            Shader (
+            ShaderInstance(
                 shader_program
             )
         }
     }
-    pub fn create(vertex_path:&str,fragment_path:&str) -> Shader
+    pub fn create(vertex_path:&str,fragment_path:&str) -> ShaderInstance
     {
         let vertex_shader_source = CString::new(fs::read_to_string(vertex_path).unwrap()).unwrap();
         let fragment_shader_source = CString::new(fs::read_to_string(fragment_path).unwrap()).unwrap();
@@ -185,7 +185,7 @@ impl  Shader{
 
             gl::DeleteShader(fragment_shader);
             gl::DeleteShader(vertex_shader); 
-            Shader (
+            ShaderInstance (
                 shader_program
             )
         
@@ -200,7 +200,7 @@ impl  Shader{
     }
 }
  
-impl Drop for Shader
+impl Drop for ShaderInstance
 {
     fn drop(&mut self)
     {

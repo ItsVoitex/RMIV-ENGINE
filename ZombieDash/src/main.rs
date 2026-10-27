@@ -3,7 +3,7 @@ mod player;
 mod scene;
 use scene::Scene;
 use player::Player;
-use rmiv_engine::{backend::Mesh, managers::{asset::Texture, window}, prelude::*};
+use rmiv_engine::prelude::*;
 /*
 max
 -921.6
@@ -36,34 +36,50 @@ pub struct Game
 fn startup(assets:&mut AssetManager,world:&mut World,platform:&mut Platform) ->Game
 {
     
-    let diff_id = assets.load(Texture{path:"Assets/textures/difficulty.png".to_string()});
-
     let window = platform.create_window(Window{
         title:"zombiedash".to_string(),
         dimensions:(1920, 1080),
+        targetfps:240,
         is_primary:false,
         windowref:None
     });
+    let shader = assets.load(CustomShader::defaultshader());
     let defaultmesh =  assets.load(Mesh::rectangle(1.0, 1.0,1.0));
     let cube = assets.load(Mesh::cube(1.0, 1.0));
     let pyramid = assets.load(Mesh::pyramid(1.0, 1.0));
+    /* 
     world.spawn( (
     Render{
         texture_id:Some(assets.load(Texture{path:"Assets/textures/backround.png".to_string()})),
-        shader_id:None,
-        mesh_id:cube,
+        shader_id:Some(shader),
+        mesh_id:defaultmesh,
         renderlayers:(0,1)
     }, Transform{
         scale:vec3(1920.0, 1080.0, -1.0),
-        position:vec3(0.0, 0.0, -2.0),
+        position:vec3(0.0, 0.0, -1.5),
         rotation: vec3(0.0,0.0,0.0), 
     }
     ));
-
-    let diff = world.spawn((Render{
-        texture_id:Some(diff_id),
+    */
+    
+    world.spawn( (
+    Render{
+        texture_id:Some(assets.load(Texture{path:"Assets/textures/backround.png".to_string()})),
+        shader_id:Some(shader),
         mesh_id:defaultmesh,
-        shader_id:None,
+        renderlayers:(0,1)
+    }, Transform{
+        scale:vec3(3420.0*1.5, 2560.0*1.5, -1.0),
+        position:vec3(0.0, 500.0, -1.5),
+        rotation: vec3(0.0,0.0,0.0), 
+    }
+    ));
+    
+    //
+    let diff = world.spawn((Render{
+        texture_id:Some(assets.load(Texture{path:"Assets/textures/difficulty.png".to_string()})),
+        mesh_id:defaultmesh,
+        shader_id:Some(shader),
         renderlayers:(0,1)
     }, 
     Transform{
@@ -91,7 +107,7 @@ fn startup(assets:&mut AssetManager,world:&mut World,platform:&mut Platform) ->G
     let title = world.spawn((Render{
         texture_id:Some(title_id),
         mesh_id:defaultmesh,
-        shader_id:None,
+        shader_id:Some(shader),
         renderlayers:(0,1)
     }, 
     Transform{
@@ -106,7 +122,7 @@ fn startup(assets:&mut AssetManager,world:&mut World,platform:&mut Platform) ->G
     let choice = world.spawn((Render{
         texture_id:Some(choice_id),
         mesh_id:defaultmesh,
-        shader_id:None,
+        shader_id:Some(shader),
         renderlayers:(0,0)
     }, 
     Transform{
@@ -122,7 +138,7 @@ fn startup(assets:&mut AssetManager,world:&mut World,platform:&mut Platform) ->G
     let over = world.spawn((Render{
         texture_id:Some(over_id),
         mesh_id:defaultmesh,
-        shader_id:None,
+        shader_id:Some(shader),
         renderlayers:(0,0)
     }, 
     Transform{
@@ -142,12 +158,13 @@ fn startup(assets:&mut AssetManager,world:&mut World,platform:&mut Platform) ->G
 
 
     world.spawn(Camera {
-        position: vec3(0.0, 0.0, -2.0),
+        position: vec3(-0.0, 0.0, -1.8),
         rotation:  vec3(0.0,0.0,0.0), 
         renderlayers: (1, 1),
         targetwindow: window.clone(),
-        ..Camera::camera2d()
+        ..Camera::camera3d()
     });
+    
     
     
     let speed = 800.0;
@@ -171,7 +188,6 @@ fn startup(assets:&mut AssetManager,world:&mut World,platform:&mut Platform) ->G
 
 fn main()
 {
-    
     App::new()
     .add_startup_system(startup)
     .add_update_system(update1)

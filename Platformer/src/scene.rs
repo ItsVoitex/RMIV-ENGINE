@@ -73,7 +73,63 @@ impl Scene
     }
 
 
-       
+    pub fn spawn_spikes(&mut self,spike_id:AssetHandle,world:&mut World,defaultmesh:&AssetHandle)
+    {
+        
+        let mut offset = 960.0;
+        for i in (0..self.objects.len()).rev()
+        {
+            if world.get_transfom(&self.objects[i]).position.x < -1000.0
+            {
+                world.destroy(self.objects[i]);
+                self.objects.swap_remove(i);
+            }
+            
+            
+        }
+        if self.objects.len() <= 3
+        {
+            for i in 0..self.lines.len()
+            {
+                for j in 0..25
+                {
+                    if self.lines[i].chars().nth(j) == Some('*')
+                    {
+                        offset +=115.2;
+                    }
+                    if self.lines[i].chars().nth(j) == Some('^')
+                    {
+                        offset += 115.2;
+                        let object = world.spawn((Transform{
+                            position:vec3(0.0,-510.0,0.0),
+                            scale:vec3(96.0, 84.0, -0.1),
+                            rotation: vec3(0.0,0.0,0.0), 
+                        },
+                        Render{
+                            shader_id:None,
+                            mesh_id:*defaultmesh,
+                            texture_id:Some(spike_id),
+                            renderlayers:(1,1),
+                        },
+                        Hitbox{
+                            x:70.8, 
+                            y:60.09,
+                            z:65.0
+                        }
+                        ));
+                        
+                        
+                        let transform = world.get_transfom(&object);
+                        transform.position.x += offset;
+                        self.objects.push(object);
+                    }
+                    
+                }
+            }
+        }
+        
+        
+    }   
    
 }
     

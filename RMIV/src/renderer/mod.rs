@@ -8,6 +8,6 @@ pub mod prelude {
     pub use crate::renderer::mesh::Mesh;
 }
 pub mod backend {
-    pub use crate::renderer::{mesh::{MeshInstance,Mesh},shader::Shader,texture::TextureInstance,renderer::Renderer};
+    pub use crate::renderer::{mesh::{MeshInstance,Mesh},shader::ShaderInstance,texture::TextureInstance,renderer::Renderer};
 
 }

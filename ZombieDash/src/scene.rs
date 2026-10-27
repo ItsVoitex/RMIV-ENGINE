@@ -112,8 +112,8 @@ impl Scene
                             renderlayers:(1,1),
                         },
                         Hitbox{
-                            x:70.8, 
-                            y:60.09,
+                            x:60.8, 
+                            y:70.09,
                             z:65.0
                         }
                         ));

@@ -23,7 +23,7 @@ impl Platform
     pub fn update_events(&mut self)
     {
         self.runtime.poll_events();
-        self.windowmanager.update_events();
+        self.windowmanager.update_events(&mut self.runtime);
     }
     pub fn delta_time(&mut self,window_handle:&WindowHandle) -> f32
     {
@@ -65,7 +65,7 @@ impl Platform
     {
         unsafe { 
             let window = 
-            match self.windowmanager.get(window_handle,true){
+            match self.windowmanager.get(window_handle,false){
                 Ok(wind) => wind,
                 Err(error) => {println!("failed to get window due to {}",error);return None},
             };

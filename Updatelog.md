@@ -2,8 +2,7 @@
 
 **RMIV Engine** is a work-in-progress game engine written in Rust using OpenGL. 
 
-
-**Updates**
+**Update 1**
 ```sh
 There have been updates to the following systems. Asset Manager, Window Manager(including platform), World and 3D implementation.
 The locations in which Open gl objects such as meshes and windows are stored are now called (type)Instance for example WindowInstance, MeshInstance, TextureInstance etc.

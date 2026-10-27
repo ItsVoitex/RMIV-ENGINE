@@ -61,7 +61,7 @@ impl Player
         
         if self.is_jumping
         {
-            transform.rotation.x += 45.0/12.5;
+            transform.rotation.x += 45.0*15.0 *delta_time;
             self.velocity.y += 15000.0 * delta_time;
             transform.position.y += self.velocity.y * delta_time;
             if transform.position.y >= -280.0
@@ -73,7 +73,7 @@ impl Player
         if !self.on_ground && !self.is_jumping
         {
             
-            transform.rotation.x += 45.0/12.5;
+            transform.rotation.x += 45.0*15.0 *delta_time;
             self.velocity.y -= 7000.0 *delta_time;
             transform.position.y += self.velocity.y * delta_time;
             if transform.position.y <= -500.0 
@@ -88,7 +88,7 @@ impl Player
         }
         if transform.rotation.x > self.rotationstate.x && self.on_ground
         {
-            transform.rotation.x -= 45.0/12.5/4.0;
+            transform.rotation.x -= 45.0*15.0*delta_time;
         }
         
 

@@ -185,7 +185,7 @@ impl Mesh
         ];
         Mesh { vertices, indices, color: None, texture_cords:Some(texture_cords) }
     }
-    /*pub fn circle(diameter:f32,precision:f32,depth:f32) ->Mesh
+    /*pub fn circle(diameter:f32,precision:f32,depth:f32) 
     {
         let mut vertices = Vec::new();
         let mut indices = Vec::new();
@@ -194,50 +194,91 @@ impl Mesh
         let bottom = vec3(0.0, -diameter/2.0,depth);
         let left = vec3(diameter/2.0 ,0.0,depth);
         let left = vec3(-diameter/2.0 ,0.0,depth);
- 
+        
+
        
 
 
-        Mesh { vertices, indices, color: None, texture_cords:Some(texture_cords) }
+        //Mesh { vertices, indices, color: None, texture_cords:Some(texture_cords) }
     }
     */
+    
     pub fn cube(width:f32,height:f32) -> Mesh
     {
          let vertices: Vec<Vec3>  = vec![ 
-            vec3(width / 2.0,  -height / 2.0,   width/2.0),
+            vec3(width / 2.0,  -height / 2.0,   width/2.0), //front 0 on
             vec3(-width / 2.0,  -height / 2.0,  width/2.0),
             vec3(-width / 2.0,   height / 2.0,  width/2.0),
            vec3(width / 2.0,   height / 2.0,    width/2.0),
 
-            vec3(width / 2.0,  -height / 2.0,    -width/2.0),
+            vec3(width / 2.0,  -height / 2.0,    -width/2.0), //back 4 on
             vec3(-width / 2.0,  -height / 2.0,    -width/2.0),
             vec3(-width / 2.0,   height / 2.0,    -width/2.0),
            vec3(width / 2.0,   height / 2.0,    -width/2.0),
+
+            vec3(width / 2.0,  -height / 2.0,    -width/2.0), //right 8 on
+            vec3(width / 2.0,  -height / 2.0,   width/2.0),
+            vec3(width / 2.0,   height / 2.0,    width/2.0),
+            vec3(width / 2.0,   height / 2.0,    -width/2.0),
+
+            vec3(-width / 2.0,  -height / 2.0,  width/2.0), //left 12 on
+             vec3(-width / 2.0,  -height / 2.0,    -width/2.0),
+             vec3(-width / 2.0,   height / 2.0,    -width/2.0),
+             vec3(-width / 2.0,   height / 2.0,  width/2.0),
+
+             vec3(width / 2.0,  -height / 2.0,    -width/2.0),//bottom 16 on
+             vec3(-width / 2.0,  -height / 2.0,    -width/2.0),
+             vec3(-width / 2.0,  -height / 2.0,  width/2.0),
+             vec3(width / 2.0,  -height / 2.0,   width/2.0),
+
+             vec3(width / 2.0,   height / 2.0,    width/2.0),//top 20 on
+             vec3(-width / 2.0,   height / 2.0,  width/2.0),
+             vec3(-width / 2.0,   height / 2.0,    -width/2.0),
+             vec3(width / 2.0,   height / 2.0,    -width/2.0),
+
         ];
         let indices:Vec<u32>= vec!
         [
             0,  1,  2,
             0,  2,  3,
 
-            4, 0, 3,
-            4, 3, 7,
+            4, 5, 6,
+            4, 6, 7,
 
-            5, 4, 7,
-            5, 7, 6,
+            8,9,10,
+            8,10,11,
 
-            1, 5, 6,
-            1, 6, 2,
+            12,13,14,
+            12,14,15,
 
-            4, 5, 1,
-            4, 1, 0,
+            16,17,18,
+            16,18,19,
 
-            3, 2, 6,
-            3, 6, 7
-
-
+            20,21,22,
+            20,22,23
         ];
 
         let texture_cords:Vec<Vec2> = vec![
+            vec2(1.0, 0.0),
+            vec2(0.0, 0.0,),
+            vec2(0.0, 1.0,),
+            vec2(1.0, 1.0,),
+
+            vec2(1.0, 0.0),
+            vec2(0.0, 0.0,),
+            vec2(0.0, 1.0,),
+            vec2(1.0, 1.0,),
+
+            vec2(1.0, 0.0),
+            vec2(0.0, 0.0,),
+            vec2(0.0, 1.0,),
+            vec2(1.0, 1.0,),
+
+            vec2(1.0, 0.0),
+            vec2(0.0, 0.0,),
+            vec2(0.0, 1.0,),
+            vec2(1.0, 1.0,),
+
             vec2(1.0, 0.0),
             vec2(0.0, 0.0,),
             vec2(0.0, 1.0,),
@@ -274,8 +315,6 @@ impl Mesh
             3,2,4,
 
             3,1,4
-
-
         ];
         let texture_cords:Vec<Vec2> = vec![
             vec2(1.0, 0.0),

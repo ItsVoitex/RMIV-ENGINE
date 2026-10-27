@@ -19,6 +19,7 @@ pub struct  WindowHandle
 pub struct Window {
     pub title:String,
     pub dimensions:(u32,u32),
+    pub targetfps:i32,
     pub is_primary:bool,
     pub windowref:Option<WindowHandle>
 }
@@ -40,18 +41,27 @@ pub struct WindowInstance
     events:GlfwReceiver<(f64,WindowEvent)>,
     delta_time:f32,
     last_time:f64,
-    current_time:f64,
     pub frame_buffer:(i32,i32),
-    windinfo:WindowInfo,
-    is_primary:bool,
+    pub windinfo:WindowInfo,
+    pub frameinfo:FrameInfo
+    
 }
 pub struct WindowInfo
 {
-    width:i32,
-    height:i32,
+    oldwidth:i32,
+    oldheight:i32,
     is_fullscreen:bool,
     is_pressed:bool,
+    pub is_primary:bool,
 
+}
+pub struct FrameInfo
+{
+    pub targetfps:i32,
+    pub shouldrender:bool,
+    last_time:f64,
+    last_time2:f64,
+    pub fps:i32,
 }
 impl WindowStorage
 {
@@ -116,10 +126,10 @@ impl WindowStorage
     {
         if self.windows.len() > 0
         {
-            true
+            false
         }
         else {
-            false
+            true
         }
     }
     pub fn destroy(&mut self,handle:&WindowHandle)
@@ -142,7 +152,7 @@ impl WindowManager
 {
     pub fn new(runtime:&mut Glfw) -> WindowManager
     {
-        let mut mainwind = WindowInstance::create_primary(runtime, 1, 1, "mainwind");
+        let mut mainwind = WindowInstance::create_primary(runtime, 1, 1, "mainwind",0);
         mainwind.window.hide();
         WindowManager { mainwind, storage: WindowStorage::new(),nextid:0,freehandles:Vec::new()}
     }
@@ -161,18 +171,18 @@ impl WindowManager
         if !windowdata.is_primary && windowdata.windowref.is_none()
         {
             let wind = &self.mainwind;
-            _mainwindow = WindowInstance::create_shared(windowdata.dimensions.0, windowdata.dimensions.1, &windowdata.title, runtime,&wind);
+            _mainwindow = WindowInstance::create_shared(windowdata.dimensions.0, windowdata.dimensions.1, &windowdata.title, runtime,&wind,windowdata.targetfps);
         }
         else {
             if !windowdata.is_primary && windowdata.windowref.is_some()
             {
                 let wind = self.storage.get_mut_window(&windowdata.windowref.unwrap(),true).unwrap();
-                _mainwindow = WindowInstance::create_shared(windowdata.dimensions.0, windowdata.dimensions.1, &windowdata.title, runtime,wind);
+                _mainwindow = WindowInstance::create_shared(windowdata.dimensions.0, windowdata.dimensions.1, &windowdata.title, runtime,wind,windowdata.targetfps);
             }
             else{
                 if windowdata.is_primary 
                 {
-                    _mainwindow = WindowInstance::create_primary(runtime,windowdata.dimensions.0, windowdata.dimensions.1, &windowdata.title);
+                    _mainwindow = WindowInstance::create_primary(runtime,windowdata.dimensions.0, windowdata.dimensions.1, &windowdata.title,windowdata.targetfps);
             
                 }
                 else
@@ -200,15 +210,25 @@ impl WindowManager
         }
 
     }
-    pub fn update_events(&mut self)
+    pub fn update_events(&mut self,runtime:&mut glfw::Glfw)
     {
-        
+        let mut lowest = 1.0;
         let mut remove_queue: Vec<WindowHandle> = Vec::new();
         for i in 0..self.storage.windows.len()
         {   
             let wind = &mut self.storage.windows[i];
             
             wind.toggle_fullscreen();
+            let val = wind.limitfps(runtime);
+            if lowest <= 0.0
+            {
+                lowest = val
+            }
+            
+            if lowest > val
+            {
+                lowest = val;
+            }
             if wind.process_events() || wind.should_close()
             {
                 remove_queue.push(self.storage.handles[i].clone());
@@ -227,6 +247,7 @@ impl WindowManager
 
             }
         }
+        runtime.wait_events_timeout(lowest);
         
     }
    
@@ -234,14 +255,14 @@ impl WindowManager
 
 impl WindowInstance
 {
-    pub fn create_window(width:u32,height:u32,window_title:&str,runtime:&mut Glfw,primarywindow:&WindowInstance) -> WindowInstance
+    pub fn create_window(width:u32,height:u32,window_title:&str,runtime:&mut Glfw,primarywindow:&WindowInstance,targetfps:i32) -> WindowInstance
     {
         if let Some((mut window,_events)) =  primarywindow.window.create_shared(width, height, window_title, glfw::WindowMode::Windowed)
             {
                 let mut width:std::ffi::c_int = 0;
                 let mut height:std::ffi::c_int = 0;
                 window.make_current();
-                runtime.set_swap_interval(glfw::SwapInterval::Sync(1));
+                runtime.set_swap_interval(glfw::SwapInterval::Sync(0));
                 window.set_framebuffer_size_polling(true);
                 unsafe {
                     glfw::ffi::glfwGetFramebufferSize(window.window_ptr(), &mut width, &mut height);
@@ -250,13 +271,13 @@ impl WindowInstance
                     gl::Enable(gl::DEPTH_TEST);
                     
                 }
-                return WindowInstance { window, events: (_events), delta_time:0.0,last_time:0.0,current_time:0.0,frame_buffer:(width,height),is_primary:false,windinfo:WindowInfo{width ,height,is_fullscreen:false,is_pressed:false}};    
+                return WindowInstance { window, events: (_events), delta_time:0.0,last_time:0.0,frame_buffer:(width,height),windinfo:WindowInfo{oldwidth:width ,oldheight:height,is_fullscreen:false,is_pressed:false,is_primary:false},frameinfo:FrameInfo { targetfps, shouldrender: true, last_time: 0.0, last_time2: 0.0, fps: 0 }};    
             }
             else {
                 panic!("failed to create shared window");
             }
     }
-    pub fn create_primary(runtime:&mut Glfw,width:u32,height:u32,window_title:&str) -> WindowInstance
+    pub fn create_primary(runtime:&mut Glfw,width:u32,height:u32,window_title:&str,targetfps:i32) -> WindowInstance
     {
        
        
@@ -267,7 +288,7 @@ impl WindowInstance
             window.get_proc_address(symbol)
             .map_or(std::ptr::null(), |f| f as *const std::ffi::c_void)
         });
-        runtime.set_swap_interval(glfw::SwapInterval::Sync(1));
+        runtime.set_swap_interval(glfw::SwapInterval::Sync(0));
         window.set_framebuffer_size_polling(true);
         let mut width:std::ffi::c_int = 0;
         let mut height:std::ffi::c_int = 0;
@@ -283,22 +304,21 @@ impl WindowInstance
             events: (_events), 
             delta_time:0.0,
             last_time:0.0,
-            current_time:0.0,
             frame_buffer:(width,height),
-            windinfo:WindowInfo{width ,height,is_fullscreen:false,is_pressed:false},
-            is_primary:true
+            windinfo:WindowInfo{oldwidth:width ,oldheight:height,is_fullscreen:false,is_pressed:false,is_primary:true},
+            frameinfo:FrameInfo { targetfps, shouldrender: true, last_time: 0.0, last_time2: 0.0, fps: 0 },
+    
         }
     }
     
     //calculates frame time for the specific window
     pub fn delta_time(&mut self,current_time:f64) ->f32
     {
-        self.current_time = current_time;
-        self.delta_time = (self.current_time - self.last_time) as f32;
-        self.last_time = self.current_time;
+        self.delta_time = (current_time - self.last_time) as f32;
+        self.last_time = current_time;
         return self.delta_time;
     }
-    pub fn create_shared(width:u32,height:u32,window_title:&str,runtime:&mut Glfw,primarywindow:&WindowInstance) -> WindowInstance
+    pub fn create_shared(width:u32,height:u32,window_title:&str,runtime:&mut Glfw,primarywindow:&WindowInstance,targetfps:i32) -> WindowInstance
     {
         
          if let Some((mut window,_events)) =  primarywindow.window.create_shared(width, height, window_title, glfw::WindowMode::Windowed)
@@ -306,7 +326,7 @@ impl WindowInstance
                 let mut width:std::ffi::c_int = 0;
                 let mut height:std::ffi::c_int = 0;
                 window.make_current();
-                runtime.set_swap_interval(glfw::SwapInterval::Sync(1));
+                runtime.set_swap_interval(glfw::SwapInterval::Sync(0));
                 window.set_framebuffer_size_polling(true);
                 unsafe {
                     glfw::ffi::glfwGetFramebufferSize(window.window_ptr(), &mut width, &mut height);
@@ -315,15 +335,45 @@ impl WindowInstance
                     gl::Enable(gl::DEPTH_TEST);
                     
                 }
-                return WindowInstance{ window, events: (_events), delta_time:0.0,last_time:0.0,current_time:0.0,frame_buffer:(width,height),is_primary:false,windinfo:WindowInfo{width ,height,is_fullscreen:false,is_pressed:false}};    
+                return WindowInstance{ window, events: (_events), delta_time:0.0,last_time:0.0,frame_buffer:(width,height),windinfo:WindowInfo{oldwidth:width ,oldheight:height,is_fullscreen:false,is_pressed:false,is_primary:false},frameinfo:FrameInfo { targetfps, shouldrender: true, last_time: 0.0, last_time2: 0.0, fps: 0 }};    
             }
             else {
                 panic!("failed to create shared window");
             }
         
     }
+    
+    pub fn limitfps(&mut self,runtime:&mut glfw::Glfw) -> f64
+    {
+
+       
+        let frametime = 1.0/self.frameinfo.targetfps as f64; 
+        let current_time = runtime.get_time();
+        let mut wait_time = 0.0;
+        if current_time - self.frameinfo.last_time > frametime
+        {
+            self.frameinfo.shouldrender = true;
+            self.frameinfo.last_time = current_time;
+        }
+        else {
+            self.frameinfo.shouldrender = false;
+            wait_time = frametime - (current_time - self.frameinfo.last_time) ;
+        }
+        
+        if current_time - self.frameinfo.last_time2 > 1.0
+        {
+            println!("{} fps",self.frameinfo.fps);
+            self.frameinfo.fps = 0;
+            self.frameinfo.last_time2 = current_time;       
+        }
+        return wait_time;
+
+
+    }
     pub fn process_events(&mut self) -> bool
     {
+        
+
         let mut should_remove = false;
     
         for (_,events) in glfw::flush_messages(&self.events)
@@ -362,7 +412,7 @@ impl WindowInstance
             let pressed = glfw::ffi::GLFW_PRESS == glfw::ffi::glfwGetKey(self.window.window_ptr(),glfw::ffi::GLFW_KEY_F11 as std::os::raw::c_int);
             if pressed && self.windinfo.is_fullscreen == true && !self.windinfo.is_pressed
             {
-                glfw::ffi::glfwSetWindowMonitor(self.window.window_ptr(),std::ptr::null_mut(), (*mode).width-self.windinfo.width / 2, (*mode).height-self.windinfo.height / 2, self.windinfo.width, self.windinfo.height, 0);
+                glfw::ffi::glfwSetWindowMonitor(self.window.window_ptr(),std::ptr::null_mut(), (*mode).width-self.windinfo.oldwidth / 2, (*mode).height-self.windinfo.oldheight / 2, self.windinfo.oldwidth, self.windinfo.oldheight, 0);
                 self.windinfo.is_fullscreen = false;
   
             }
@@ -400,7 +450,7 @@ impl Drop for WindowInstance {
     fn drop(&mut self) {
         
         unsafe {
-            if !self.is_primary
+            if !self.windinfo.is_primary
             {
                 glfw::ffi::glfwDestroyWindow(self.window.window_ptr());
             }
