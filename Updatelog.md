@@ -87,9 +87,11 @@ lots of optimisations, all axis rotation and many more.
 </div>
 
 ```sh
-There have been updates to the following systems. Asset Manager, Window Manager(including platform), World and 3D implementation.
-The locations in which Open gl objects such as meshes and windows are stored are now called (type)Instance for example WindowInstance, MeshInstance, TextureInstance etc.
-**3D** is now supported through the camera by calling the Camera3D creation function the asset manager has also been updated to allow for 3d meshes 
+There have been updates to the following systems. Asset Manager, Window Manager(including platform), 
+World and 3D implementation. The locations in which Open gl objects such as meshes and windows are stored 
+are now called (type)Instance for example WindowInstance, MeshInstance, TextureInstance etc.
+**3D** is now supported through the camera by calling the Camera3D creation function the 
+asset manager has also been updated to allow for 3d meshes 
 ```
 
 
