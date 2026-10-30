@@ -1,18 +1,23 @@
-# RMIV Engine Update Log
-
-
 <div align="center">
-# **RMIV Engine**
-work-in-progress game engine written in Rust using OpenGL. 
+
+# RMIV Engine Update Log
 </div>
 
 
 
+## **RMIV Engine** work-in-progress game engine written in Rust using OpenGL. 
+
+
+
+
+
 
 
 
 <div align="center">
+
 ## **Update 2**
+
 </div>
 ```sh
 There have been updates to the following systems. 

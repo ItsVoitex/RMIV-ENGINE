@@ -1,15 +1,17 @@
 <div align="center">
+
 # RMIV Engine
+
 </div>
 
 **RMIV Engine** is a work-in-progress game engine written in Rust using OpenGL. 
 
 
-# Disclaimer
+## Disclaimer
 > The engine is still under development. Features, systems and structure are all subject to change
 
 
-# SetUpGuide
+## SetUpGuide
 There is an example game built with the engine called **Zombie Dash** which you can check out below .
 ```sh
 
