@@ -82,8 +82,10 @@ lots of optimisations, all axis rotation and many more.
 
 
 <div align="center">
+
 ## **Update 1**
 </div>
+
 ```sh
 There have been updates to the following systems. Asset Manager, Window Manager(including platform), World and 3D implementation.
 The locations in which Open gl objects such as meshes and windows are stored are now called (type)Instance for example WindowInstance, MeshInstance, TextureInstance etc.
