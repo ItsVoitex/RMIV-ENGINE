@@ -34,5 +34,9 @@ Follow the Setup guide to ensure your development environment is set up correctl
 
 ```
 
+## Example 1
 <img src=".github/media/ZombieDash1.png"/>
+
+## Example 2
+
 <img src=".github/media/ZombieDash2.png"/>
