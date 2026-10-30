@@ -6,17 +6,14 @@
 
 
 use crate::{backend::*};
-
+use std::time::{Duration, Instant};
 
 pub struct App<T>
 {
-    pub assets:AssetManager,
-    pub world:World,
-    pub renderer: Renderer,
-    pub platform:Platform,
     startup_system:Option<fn(&mut AssetManager,&mut World,&mut Platform) -> T>,
     update_systems:Vec<fn(&mut AssetManager,&mut World,&mut Platform,&mut T)>,
     maxtickrate:i32,
+    enabledebug:bool
     
 }
 impl <T>App<T>
@@ -24,16 +21,12 @@ impl <T>App<T>
     pub fn new() -> App<T>
     {
         
-        let platform = Platform::new();
-        let assets = AssetManager::new();
+        
         App {
-            renderer:Renderer::create(),
-            world:World::new(),
-            platform,
-            assets:assets, 
             update_systems:Vec::new(),
             startup_system:None,
-            maxtickrate:240,
+            maxtickrate:200,
+            enabledebug:false
 
             
         }
@@ -55,36 +48,51 @@ impl <T>App<T>
         self.maxtickrate = tickrate;
         self
     }
-    
+    pub fn toggle_debug(&mut self) -> &mut App<T>
+    {
+        if self.enabledebug
+        {
+            self.enabledebug = false
+        }
+        else {
+            self.enabledebug = true;
+        }
+        self
+        
+    }
     pub fn run(&mut self) -> &mut App<T>
     {    
         
+       
         
-        
-        let gametime = 1.0/self.maxtickrate as f64;
+        let gametime = Duration::from_secs(1)/self.maxtickrate as u32;
     
         
         let mut tickrate = 0;
 
         let ussystems = std::mem::take(&mut self.update_systems);
-        let assets = &mut self.assets;
-        let renderer = &mut self.renderer;
-        let platform = &mut self.platform;
-        let world = &mut self.world;
+
+        let mut platform = Platform::new();
+        let mut assets = AssetManager::new();
+        let mut world = World::new();
+        
+
+
         let mut state:Option<T> = None;
         if let Some(sssystems) = std::mem::take(&mut self.startup_system){
-            state = Some(sssystems(assets,world,platform));
+            state = Some(sssystems(&mut assets,&mut world,&mut platform));
         }
         
-        let mut lasttime2 = platform.runtime.get_time();
-        let mut lasttime3 = platform.runtime.get_time();
+        let mut renderer = Renderer::create(self.enabledebug);
+        let mut last_time1 = Instant::now();
+        let mut last_time2 = Instant::now();
       
-        
+       
         
         loop
         {
              
-            let currenttime = platform.runtime.get_time();
+            let currenttime = Instant::now();
             
             
             if platform.windowmanager.storage.should_close()
@@ -92,36 +100,45 @@ impl <T>App<T>
                 break;
             }
             
-            if currenttime - lasttime3 >= 1.0
+            if currenttime.duration_since(last_time1) >= Duration::from_secs(1)
             {
                 println!("{} tps",tickrate);
                 println!("");
                 tickrate = 0;
-                lasttime3 = currenttime;
+                last_time1 = currenttime;
                 
             }
             
             
             platform.update_events();
-            if currenttime - lasttime2 >= gametime
+            
+            if currenttime.duration_since(last_time2) >= gametime
             {
                 
-                world.update_cameras(platform);
+                world.update_cameras(&mut platform);
                 match &mut state {
                     Some(state) => {
                         for i in ussystems.iter()
                         {
-                            i(assets,world,platform,state);
+                            i(&mut assets,&mut world,&mut platform,state);
                         }
                     },
                     None => {},    
                 
                 };
-                lasttime2 = currenttime;
+                last_time2 = currenttime;
                 tickrate +=1;
+                world.update_snapshot(&mut renderer.rendersnapshot);
+                world.update_camera_snapshot(&mut renderer.cameras);
+                renderer.queue_draw(&mut platform.windowmanager,&mut assets,&mut world);
+               
+            }
+            else {
+                platform.runtime.wait_events_timeout((gametime - (currenttime - last_time2)).as_secs_f64() );
             }
             
-            Renderer::queue_draw(renderer,world,platform,assets);
+            
+           
             
         
             if platform.windowmanager.storage.should_close()
@@ -129,15 +146,10 @@ impl <T>App<T>
                 break;
             }
            
-        
-            
-          
-            
-            
-           
+ 
            
         }platform.windowmanager.storage.should_close();
-
+        
         self
         
     }    

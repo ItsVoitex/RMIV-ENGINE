@@ -10,6 +10,7 @@ pub struct Player
     on_ground:bool,
     is_jumping:bool,
     velocity:Vec3,
+    floor:f32,
     pub rotationstate:Vec3
 }
 
@@ -17,13 +18,13 @@ impl Player
 {
 
 
-    pub fn create(texture_id: &AssetHandle,length:f32,width:f32,depth:f32,world:&mut World,defaultmesh:&AssetHandle) -> Player
+    pub fn create(texture_id: &AssetHandle,length:f32,height:f32,width:f32,world:&mut World,defaultmesh:&AssetHandle,floor:f32) -> Player
     {
         let entity = world.spawn((
             Transform
         {
-            scale:vec3(length,width,depth),
-            position:vec3(0.0, 0.0, 0.0),
+            scale:vec3(length,height,width),
+            position:vec3(-1.25, floor, -0.6),
             rotation: vec3(0.0,0.0,0.0), 
         },
         Render
@@ -34,9 +35,9 @@ impl Player
             renderlayers:(1,1)
         },
         Hitbox{
-            x:50.0,
-            y:50.0,
-            z:50.0
+            length:length-0.1,
+            width:width-0.1,
+            height:height-0.1
         }
         ));
          
@@ -49,6 +50,7 @@ impl Player
             is_jumping:false, 
             velocity:vec3(0.0, 0.0, 0.0),
             rotationstate: vec3(0.0,0.0,0.0), 
+            floor
         }
     }
 
@@ -61,10 +63,10 @@ impl Player
         
         if self.is_jumping
         {
-            transform.rotation.x += 45.0*15.0 *delta_time;
-            self.velocity.y += 15000.0 * delta_time;
+            transform.rotation.z += 45.0*15.0 *delta_time;
+            self.velocity.y += 46.0 * delta_time;
             transform.position.y += self.velocity.y * delta_time;
-            if transform.position.y >= -280.0
+            if transform.position.y >= -0.5
             {
                 self.is_jumping = false;
                 self.velocity.y = 0.0;
@@ -73,36 +75,37 @@ impl Player
         if !self.on_ground && !self.is_jumping
         {
             
-            transform.rotation.x += 45.0*15.0 *delta_time;
-            self.velocity.y -= 7000.0 *delta_time;
+            transform.rotation.z += 45.0*15.0 *delta_time;
+            self.velocity.y -= 21.0 *delta_time;
             transform.position.y += self.velocity.y * delta_time;
-            if transform.position.y <= -500.0 
+            if transform.position.y <= self.floor
             {
-                transform.rotation.x = self.rotationstate.x;
-                self.rotationstate += 90.0;
+                transform.rotation.z = self.rotationstate.z;
+                self.rotationstate.z += 90.0;
                 
-                transform.position.y = -500.0;
+                transform.position.y = self.floor;
                 self.velocity.y = 0.0;
                 self.on_ground = true
             } 
         }
-        if transform.rotation.x > self.rotationstate.x && self.on_ground
+        if transform.rotation.z > self.rotationstate.z && self.on_ground
         {
-            transform.rotation.x -= 45.0*15.0*delta_time;
+            transform.rotation.z -= 45.0*15.0*delta_time;
         }
         
 
-        if moveleft && !(transform.position.x + 38.4*1.5/2.0 < -921.6)
+        if moveleft && !(transform.position.x + transform.scale.x/2.0 < -1.8)
         {
-            transform.position.x -= 480.0 * delta_time;
+            transform.position.x -= 1.0 * delta_time;
            
             
         }
-        if moveright && !(transform.position.x + 38.4*1.5/2.0 > 961.6)
+        if moveright && !(transform.position.x - transform.scale.x/2.0 > 1.8)
         {
-            transform.position.x += 480.0 * delta_time;
+            transform.position.x += 1.0 * delta_time;
             
         }
+        
         if jump
         {
             

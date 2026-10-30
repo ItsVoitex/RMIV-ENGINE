@@ -2,8 +2,6 @@
 pub mod managers;
 pub mod application;
 pub mod renderer;
-pub mod templates;
-
 
 pub mod prelude {
     pub use crate::application::{app::{App,}};

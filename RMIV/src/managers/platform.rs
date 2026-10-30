@@ -1,4 +1,5 @@
 use crate::{managers::window::{WindowHandle, WindowManager}};
+
 use glfw::{Context, fail_on_errors};
 use std::mem;
 use crate::prelude::*;
@@ -6,7 +7,8 @@ use crate::prelude::*;
 pub struct Platform
 {
     pub runtime:glfw::Glfw,
-    pub windowmanager:WindowManager
+    pub windowmanager:WindowManager,
+    is_wayland:bool
 }
 
 
@@ -15,22 +17,23 @@ impl Platform
     pub fn new() ->Platform
     {
         let mut runtime = glfw::init(fail_on_errors).unwrap();
-        
+        let platform = runtime.get_platform();
+        let is_wayland = platform == glfw::Platform::Wayland;
         let windowmanager = WindowManager::new(&mut runtime);
-        Platform { runtime, windowmanager }
+        Platform { runtime, windowmanager ,is_wayland}
 
     }
     pub fn update_events(&mut self)
     {
         self.runtime.poll_events();
-        self.windowmanager.update_events(&mut self.runtime);
+        self.windowmanager.update_events(&mut self.runtime,&self.is_wayland);
     }
     pub fn delta_time(&mut self,window_handle:&WindowHandle) -> f32
     {
         let window = self.windowmanager.get_mut(window_handle,false);
         let window = match window{
             Ok(wind) => wind,
-            Err(error) => {println!("failed to get window due to {} unable to calculate delta time",error);return 0.0},
+            Err(error) => {println!("{} unable to calculate delta time",error);return 0.0},
         };
         return window.delta_time(self.runtime.get_time())
     }
@@ -55,10 +58,35 @@ impl Platform
             let window =  
             match self.windowmanager.get(window_handle,false){
                 Ok(wind) => wind,
-                Err(error) => {println!("failed to get window due to {}",error);return None},
+                Err(error) => {println!("{}",error);return None},
             };
             std::mem::transmute(glfw::ffi::glfwGetKey(window.window.window_ptr(), KeyCode as std::os::raw::c_int)) 
         }     
+    }
+    pub fn get_cursor_position(&self,window_handle:&WindowHandle,camera:&mut Camera) -> glam::Vec2
+    {
+        unsafe { 
+            let window = 
+            match self.windowmanager.get(window_handle,false){
+                Ok(wind) => wind,
+                Err(error) => {println!("{}",error);return vec2(0.0, 0.0)},
+            };
+            let mut xpos = 0.0;
+            let mut ypos = 0.0;
+            glfw::ffi::glfwGetCursorPos(window.window.window_ptr(),&mut xpos,&mut ypos);
+
+            let xpos = 2.0 * (xpos/window.windinfo.frame_buffer.0 as f64) - 1.0;
+            let ypos = 1.0 - 2.0 * (ypos/window.windinfo.frame_buffer.1 as f64);
+
+            let iproj = camera.proj.inverse();
+            let iview = camera.view.inverse();
+            let imodel = camera.model.inverse();
+
+            let mut cords = vec4(xpos as f32, ypos as f32, 0.0,0.0);
+
+            cords = iproj * iview * imodel * cords;
+            return vec2(cords.x, cords.y);
+        }
     }
     #[allow(non_snake_case)]
     fn get_mouse(&self,window_handle:&WindowHandle, MouseButton: MouseButton) -> Option<Action>
@@ -67,7 +95,7 @@ impl Platform
             let window = 
             match self.windowmanager.get(window_handle,false){
                 Ok(wind) => wind,
-                Err(error) => {println!("failed to get window due to {}",error);return None},
+                Err(error) => {println!("{}",error);return None},
             };
             mem::transmute(glfw::ffi::glfwGetMouseButton(window.window.window_ptr(), MouseButton as std::os::raw::c_int)) 
         }

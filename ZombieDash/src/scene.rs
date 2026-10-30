@@ -8,6 +8,8 @@ pub struct Scene
 {
     pub objects:Vec<Entity>,
     lines:Vec<String>,
+    floor:f32,
+    backrounds:(Entity,Entity,Entity)
 }
 
 fn read_lines(file_path:&str) -> Vec<String>
@@ -33,11 +35,13 @@ impl Scene
 {
     
 
-    pub fn create() -> Scene
+    pub fn create(floor:f32,backrounds:(Entity,Entity,Entity)) -> Scene
     {
         Scene { 
             objects: Vec::new(),
             lines:Vec::new(),
+            floor,
+            backrounds        
         }
     }
     pub fn getobjects(&mut self) -> Vec<&Entity>
@@ -51,6 +55,20 @@ impl Scene
     }
     pub fn move_all(&mut self,delta_time:&f32,speed:f32,world:&mut World)
     {
+        let temp = world.get_transfom(&self.backrounds.1) ;
+        temp.position.x -= 0.4 **delta_time;
+        if temp.position.x < -5.4
+        {
+            temp.position.x = 5.4
+        }
+        let temp = world.get_transfom(&self.backrounds.2) ;
+        temp.position.x -= 0.4 **delta_time;
+        if temp.position.x < -5.4
+        {
+            temp.position.x = 5.4
+        }
+    
+
         for j in 0..self.objects.len()
         {
             world.get_transfom(&self.objects[j]).position.x -= speed * *delta_time;
@@ -76,10 +94,10 @@ impl Scene
     pub fn spawn_spikes(&mut self,spike_id:AssetHandle,world:&mut World,defaultmesh:&AssetHandle)
     {
         
-        let mut offset = 960.0;
+        let mut offset = 2.2;
         for i in (0..self.objects.len()).rev()
         {
-            if world.get_transfom(&self.objects[i]).position.x < -1000.0
+            if world.get_transfom(&self.objects[i]).position.x < -2.4
             {
                 world.destroy(self.objects[i]);
                 self.objects.swap_remove(i);
@@ -95,15 +113,15 @@ impl Scene
                 {
                     if self.lines[i].chars().nth(j) == Some('*')
                     {
-                        offset +=115.2;
+                        offset +=0.27;
                     }
                     if self.lines[i].chars().nth(j) == Some('^')
                     {
-                        offset += 115.2;
+                        offset += 0.27;
                         let object = world.spawn((Transform{
-                            position:vec3(0.0,-510.0,0.0),
-                            scale:vec3(96.0, 84.0, -0.1),
-                            rotation: vec3(0.0,0.0,0.0), 
+                            position:vec3(offset,self.floor-0.025,-0.6),
+                            scale:vec3(0.27, 0.2, 0.2),
+                            rotation: vec3(0.0,180.0,0.0), 
                         },
                         Render{
                             shader_id:None,
@@ -112,15 +130,15 @@ impl Scene
                             renderlayers:(1,1),
                         },
                         Hitbox{
-                            x:60.8, 
-                            y:70.09,
-                            z:65.0
+                            length:0.1, 
+                            height:0.1,
+                            width:0.1
                         }
                         ));
+                        /*length:0.27, 
+                            height:0.25,
+                            width:0.25 */
                         
-                        
-                        let transform = world.get_transfom(&object);
-                        transform.position.x += offset;
                         self.objects.push(object);
                     }
                     

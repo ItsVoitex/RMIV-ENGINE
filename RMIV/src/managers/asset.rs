@@ -109,30 +109,46 @@ impl <T,U>Storage<T,U>
     {
         Storage { handles: Vec::new(), assetdata: Vec::new(),asset:Vec::new(), asset_to_index: Vec::new() }
     }
-    pub fn get_asset(&self,entity:&AssetHandle) -> Option<&U>
+    pub fn get_instance(&self,entity:&AssetHandle,fail_on_errors:bool) -> Result<&U,&str>
     {
         if let Some(index) = self.asset_to_index[entity.id as usize]
         {
             if self.handles[index] == *entity
             {
-                return Some(&self.asset[index]);
+                return Ok(&self.asset[index]);
             }
-            return None;
+            if fail_on_errors
+            {
+                panic!("[Old Data] failed to get asset instance due to potentially expired assethandle");
+            }
+            return Err("[Old Data] failed to get asset instance due to potentially expired assethandle");
         }
-        return None;
+        if fail_on_errors
+        {
+            panic!("[Indvalid Data] failed to get assetinstance due to non existence");
+        }
+        return  Err("[Indvalid Data] failed to get assetinstance due to non existence");
         
     }
-    pub fn get_assetdata(&self,entity:&AssetHandle) -> Option<&T>
+    pub fn get_data(&self,entity:&AssetHandle,fail_on_errors:bool) -> Result<&T,&str>
     {
         if let Some(index) = self.asset_to_index[entity.id as usize]
         {
             if self.handles[index] == *entity
             {
-                return Some(&self.assetdata[index]);
+                return Ok(&self.assetdata[index]);
             }
-            return None;
+            if fail_on_errors
+            {
+                panic!("[Old Data] failed to get assetdata due to potentially expired assethandle")
+            }
+            return Err("[Old Data] failed to get assetdata due to potentially expired assethandle");
         }
-        return None;
+        if fail_on_errors
+            {
+                panic!("[Invalid Data] failed to get assetdata due to non existence")
+            }
+        return Err("[Invalid Data] failed to get assetdata due to non existence");
         
     }
     pub fn destroy(&mut self,entity:&AssetHandle) -> bool

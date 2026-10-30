@@ -15,7 +15,7 @@ impl  ShaderInstance{
         layout (location = 1) in vec2 aTexCoord;
         layout (location = 2) in vec3 aColor;
         out vec2 texCoord;
-        out vec3 Color;
+        out vec3 VertexColor;
         uniform vec3 offset;
         uniform vec3 rotation;
         uniform vec3 scale;
@@ -24,37 +24,72 @@ impl  ShaderInstance{
         uniform mat4 view;
         uniform mat4 proj;
 
-        void main()
+        mat3 rotatez()
+        {
+            float angle = radians(rotation.z);
+            float s = sin(angle);
+            float c = cos(angle);
+            return mat3(
+            c, -s, 0.0,
+            s,  c, 0.0,
+            0.0,  0.0, 1.0
+            );
+
+        }
+        mat3 rotatey()
+        {
+            float angle = radians(rotation.y);
+            float s = sin(angle);
+            float c = cos(angle);
+            return mat3(
+            c, 0.0, s,
+            0.0,  1.0, 0.0,
+            -s,  0.0, c
+            );
+
+        }
+        mat3 rotatex()
         {
             float angle = radians(rotation.x);
             float s = sin(angle);
             float c = cos(angle);
-            vec3 position = aPos * scale;
-            position.xy = mat2(c,-s,s,c) *position.xy;
-            position = position + offset;
-            position.xy /= 540;
+            return mat3(
+            1.0,  0.0, 0.0,
+            0.0,  c,   -s, 
+            0.0,  s,    c
             
-            gl_Position = proj * view * model vec4(position, 1.0);
+            );
+
+        }
+        void main()
+        {
+            
+            vec3 position = aPos * scale;
+            position = rotatez() * rotatey() * rotatex() * position;
+            position = position + offset;
+            
+            gl_Position = proj * view * model * vec4(position, 1.0);
             texCoord = aTexCoord;
-            Color = aColor; 
+            VertexColor = aColor; 
         }
         "#;
         const FRAGMENT_SOURCE:&str = r#"
         #version 330 core
         out vec4 FragColor;
         in vec2 texCoord;
-        in vec3 Color;
+        in vec3 VertexColor;
         uniform bool has_texture;
         uniform sampler2D texture1;
+        uniform vec3 Color;
         void main()
         {
             if (has_texture)
             {
-                FragColor = texture(texture1 ,texCoord) * vec4(Color,1.0); 
+                FragColor = texture(texture1 ,texCoord) * vec4(VertexColor,1.0) * vec4(Color,1.0); 
             }
             else
             {
-                FragColor = vec4(Color,1.0); 
+                FragColor = vec4(VertexColor,1.0) * vec4(Color,1.0); 
             }   
              
         }

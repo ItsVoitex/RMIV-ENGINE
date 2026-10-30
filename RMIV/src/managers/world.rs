@@ -3,9 +3,9 @@
 
 use glam::Mat4;
 
-use crate::{managers::window::{WindowHandle, WindowInstance}, prelude::*};
+use crate::backend::*;
 
-//let the user enter theeir own strcut values when doing add
+
 
 pub trait Component {
     fn add_to(self, world: &mut World, entity: &Entity);
@@ -16,7 +16,8 @@ pub enum ComponentType {
     Hitbox = 1,
     Render = 2,
     Camera = 3,
-    //Window = 4
+    Color = 4
+    
 }
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug,)]
 pub struct Entity{
@@ -33,21 +34,29 @@ impl Entity{
         println!("id:{} generation:{}",self.id,self.generation);
     }
 }
-#[derive(Copy, Clone,PartialEq,Debug,)]
+#[derive(Copy, Clone,PartialEq,Debug)]
 pub struct Transform
 {
     pub position:Vec3,
     pub scale:Vec3,
     pub rotation:Vec3,
 }
-#[derive(Copy, Clone,PartialEq,Debug,)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug,)]
+pub struct Color
+{
+    pub red:u8,
+    pub green:u8,
+    pub blue:u8
+
+}
+#[derive(Copy, Clone,PartialEq)]
 pub struct Hitbox
 {
-    pub x:f32,
-    pub y:f32,
-    pub z:f32,
+    pub length:f32,
+    pub width:f32,
+    pub height:f32,
 }
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone,PartialEq,Debug)]
 pub struct Camera{
     pub position:Vec3,
     pub rotation:Vec3,
@@ -88,7 +97,7 @@ impl Camera
     {
         let model = glam::Mat4::IDENTITY;
         let view: Mat4 =  glam::Mat4::IDENTITY;
-        let proj: Mat4 =  glam::camera::rh::proj::opengl::perspective(60.0_f32.to_radians(), 1920.0/1080.0, 1.0, 100.0);
+        let proj: Mat4 =  glam::camera::rh::proj::opengl::perspective(60.0_f32.to_radians(), 1920.0/1080.0, 0.1, 100.0);
     
         Camera { 
             position: vec3(0.0, 0.0, 0.0), 
@@ -106,7 +115,7 @@ impl Camera
     {
         if !self.is_2d
         {   
-            self.proj = glam::camera::rh::proj::opengl::perspective(self.fov.to_radians(), window.frame_buffer.0 as f32/window.frame_buffer.1 as f32, 1.0, 100.0);
+            self.proj = glam::camera::rh::proj::opengl::perspective(self.fov.to_radians(), window.windinfo.frame_buffer.0 as f32/window.windinfo.frame_buffer.1 as f32, 0.1, 100.0);
         }
         self.view = glam::Mat4::from_translation(self.position);
     }
@@ -114,7 +123,7 @@ impl Camera
     {
         self.fov = fov;
         self.is_2d = false;
-        self.proj = glam::camera::rh::proj::opengl::perspective(self.fov.to_radians(), 1920.0/1080 as f32, 1.0, 100.0);
+        self.proj = glam::camera::rh::proj::opengl::perspective(self.fov.to_radians(), 1920.0/1080 as f32, 0.1, 100.0);
     }
     pub fn make2d(&mut self)
     {
@@ -150,19 +159,52 @@ pub struct World
     hitboxes : Storage<Hitbox>,
     renders : Storage<Render>,
     cameras : Storage<Camera>,
+    colors : Storage<Color>
 }
 impl Component for Transform
 {
     fn add_to(self, world: &mut World, entity: &Entity) {
+         for i in 0..world.transforms.entities.len()
+        {
+            if world.transforms.entities[i] == *entity
+            {
+                world.transforms.components[i] = self;
+                return;
+            }
+        }
         world.transforms.entities.push(entity.clone());
         world.transforms.components.push(self);
         world.transforms.entity_to_index[entity.id as usize] = Some(world.transforms.components.len() -1);
+    }
+}
+impl Component for Color
+{
+    fn add_to(self, world: &mut World, entity: &Entity) {
+         for i in 0..world.colors.entities.len()
+        {
+            if world.colors.entities[i] == *entity
+            {
+                world.colors.components[i] = self;
+                return;
+            }
+        }
+        world.colors.entities.push(entity.clone());
+        world.colors.components.push(self);
+        world.colors.entity_to_index[entity.id as usize] = Some(world.colors.components.len() -1);
     }
 }
 
 impl Component for Hitbox
 {
     fn add_to(self, world: &mut World, entity: &Entity) {
+         for i in 0..world.hitboxes.entities.len()
+        {
+            if world.hitboxes.entities[i] == *entity
+            {
+                world.hitboxes.components[i] = self;
+                return;
+            }
+        }
         world.hitboxes.entities.push(entity.clone());
         world.hitboxes.components.push(self);
         world.hitboxes.entity_to_index[entity.id as usize] = Some(world.hitboxes.components.len() -1);
@@ -171,6 +213,14 @@ impl Component for Hitbox
 impl Component for Render
 {
     fn add_to(self, world: &mut World, entity: &Entity) {
+         for i in 0..world.renders.entities.len()
+        {
+            if world.renders.entities[i] == *entity
+            {
+                world.renders.components[i] = self;
+                return;
+            }
+        }
         world.renders.entities.push(entity.clone());
         world.renders.components.push(self);
         world.renders.entity_to_index[entity.id as usize] = Some(world.renders.components.len() -1);
@@ -179,6 +229,14 @@ impl Component for Render
 impl Component for Camera
 {
     fn add_to(self, world: &mut World, entity: &Entity) {
+        for i in 0..world.cameras.entities.len()
+        {
+            if world.cameras.entities[i] == *entity
+            {
+                world.cameras.components[i] = self;
+                return;
+            }
+        }
         world.cameras.entities.push(entity.clone());
         world.cameras.components.push(self);
         world.cameras.entity_to_index[entity.id as usize] = Some(world.cameras.components.len() -1);
@@ -272,6 +330,7 @@ impl World
             hitboxes: Storage::new(), 
             renders: Storage::new(),
             cameras: Storage::new(),
+            colors : Storage::new()
         }
     }
     pub fn update_cameras(&mut self,platform:&mut Platform)
@@ -302,6 +361,7 @@ impl World
             self.hitboxes.entity_to_index.push(None);
             self.renders.entity_to_index.push(None);
             self.cameras.entity_to_index.push(None);
+            self.colors.entity_to_index.push(None);
             self.next_id += 1;
             components.add_to(self,&entity);
             entity
@@ -340,21 +400,21 @@ impl World
     {
         let new = self.clone_all_components(entity);
         let entity = self.spawn_empty();
-        if new.0.is_some()
+        if let Some(component) = new.0
         {
-            self.add_component(&entity, new.0.unwrap());
+            self.add_component(&entity, component);
         }
-        if new.1.is_some()
+        if let Some(component) = new.1
         {
-            self.add_component(&entity, new.1.unwrap());
+            self.add_component(&entity, component);
         }
-        if new.2.is_some()
+        if let Some(component) = new.2
         {
-            self.add_component(&entity, new.2.unwrap());
+            self.add_component(&entity, component);
         }
-        if new.3.is_some()
+        if let Some(component) = new.3
         {
-            self.add_component(&entity, new.3.unwrap());
+            self.add_component(&entity, component);
         }
         entity
 
@@ -363,21 +423,104 @@ impl World
     {
        component.add_to(self,entity)
     }
-    pub fn get_render_components(&self,entities:Vec<Entity>) -> Vec<(&Render,&Transform)>
+
+    pub fn update_snapshot(&self,snapshot:&mut Vec<(Render,Transform,Option<Color>)>)
     {
-        let mut vec:Vec<(&Render,&Transform)> = Vec::new();
-        for i in 0..entities.len()
+        let mut vec = Vec::new();
+        for i in &self.renders.entities
         {
-            if let Some(render) = self.renders.get_component(&entities[i]) && let Some(transform) = self.transforms.get_component(&entities[i])
+            for j in &self.renders.entities
             {
-                vec.push((render,transform));
-            }
-            else {
-                panic!("failed to get render components");
+                if i == j
+                {
+                    vec.push(i);
+                }
             }
         }
-        return vec;
-  
+        let mut hascolor = false;
+        let mut index = 0;
+        for i in 0..vec.len()
+        {
+            for j in &self.colors.entities
+            {
+                if vec[i] == j
+                {
+                    if index+1 > snapshot.len()
+                    {
+                        snapshot.push((self.renders.get_component(vec[i]).unwrap().clone(),self.transforms.get_component(vec[i]).unwrap().clone(),Some(self.colors.get_component(j).unwrap().clone())));
+                    }
+                    else {
+                        if snapshot[index] == (*self.renders.get_component(vec[i]).unwrap(),*self.transforms.get_component(vec[i]).unwrap(),Some(*self.colors.get_component(j).unwrap()))
+                        {
+                            index += 1;
+                            hascolor = true;
+                            break;
+                        }
+                        snapshot[index] = (self.renders.get_component(vec[i]).unwrap().clone(),self.transforms.get_component(vec[i]).unwrap().clone(),Some(self.colors.get_component(j).unwrap().clone()));
+                    }
+                    
+                    index += 1;
+                    hascolor = true;
+                    break;
+                }
+            }
+            if hascolor
+            {
+                continue;
+            }
+            if !hascolor
+            {
+                if index+1 > snapshot.len()
+                {
+                    snapshot.push((self.renders.get_component(vec[i]).unwrap().clone(),self.transforms.get_component(vec[i]).unwrap().clone(),None));
+                }
+                else {
+                    if snapshot[index] == (*self.renders.get_component(vec[i]).unwrap(),*self.transforms.get_component(vec[i]).unwrap(),None)
+                    {
+                        index +=1;
+                        hascolor = false;
+                        continue;
+                    }
+                    snapshot[index] = (self.renders.get_component(vec[i]).unwrap().clone(),self.transforms.get_component(vec[i]).unwrap().clone(),None);
+                    
+                }
+                
+                index +=1;
+            }
+            hascolor = false;
+        }
+       
+        if index < snapshot.len()
+        {
+
+            for i in (index..snapshot.len()).rev()
+            {
+                snapshot.remove(i);
+            }
+        }
+
+    }
+    pub fn get_render_hitboxes(&self) -> Vec<(&Render,&Transform,&Hitbox)>
+    {
+        let mut vec:Vec<(&Render,&Transform,&Hitbox)> = Vec::new();
+        for k in &self.hitboxes.entities
+        {
+            for i in &self.renders.entities
+            {
+                for j in &self.renders.entities
+                {
+                    if i == j && j== k
+                    {
+                        if let Some(render) = self.renders.get_component(i) && let Some(transform) = self.transforms.get_component(j) && let Some(hitbox) = self.hitboxes.get_component(k)
+                        {
+                            vec.push((render,transform,hitbox));
+                        }
+                    }
+                }
+            }
+        }
+        
+        vec
     }
     fn clone_all_components(&mut self,entity:&Entity) -> (Option<Render>,Option<Transform>,Option<Camera>,Option<Hitbox>)
     {
@@ -422,21 +565,35 @@ impl World
         temp
 
     }
-    pub fn get_camera_components(&self,entities:Vec<Entity>) -> Vec<&Camera>
+    pub fn update_camera_snapshot(&self,snapshot:&mut Vec<Camera>) 
     {
-        let mut vec:Vec<&Camera> = Vec::new();
-        for i in 0..entities.len()
+        
+        for i in 0..self.cameras.entities.len()
         {
-            if let Some(camera) = self.cameras.get_component(&entities[i]) 
+            if i >= snapshot.len()
             {
-                vec.push(camera);
+                snapshot.push(self.cameras.get_component(&self.cameras.entities[i]).unwrap().clone());
             }
             else {
-                panic!("failed to get render components");
+                snapshot[i] = self.cameras.get_component(&self.cameras.entities[i]).unwrap().clone()
             }
         }
-        return vec;
+        for i in (self.cameras.entities.len()..snapshot.len()).rev()
+        {
+            snapshot.remove(i);
+        }
+    
   
+    }
+    pub fn get_color(&self,entity:&Entity) -> Option<&Color>
+    {
+       if let Some(component) = self.colors.get_component(&entity)
+        {
+            return Some(component);
+        }
+        else {
+            return None;
+        } 
     }
     
 
@@ -447,7 +604,7 @@ impl World
             return component;
         }
         else {
-            panic!("failed to get component")
+            panic!("failed to get transform component")
         }
     }
     pub fn get_hitbox(&mut self,entity:&Entity) -> &mut Hitbox
@@ -457,7 +614,7 @@ impl World
             return component;
         }
         else {
-            panic!("failed to get component")
+            panic!("failed to get hitbox component")
         }
     }
     pub fn get_render(&mut self,entity:&Entity) -> &mut Render
@@ -467,7 +624,7 @@ impl World
             return component;
         }
         else {
-            panic!("failed to get component")
+            panic!("failed to get render component")
         }
     }
     pub fn get_camera(&mut self,entity:&Entity) -> &mut Camera
@@ -477,100 +634,255 @@ impl World
             return component;
         }
         else {
-            panic!("failed to get component")
+            panic!("failed to get camera component")
         }
     }
-    /*pub fn get_window(&mut self,entity:&Entity) -> &Window
+    pub fn get_mut_color(&mut self,entity:&Entity) -> &mut Color
     {
-        if let Some(component) = self.windows.get_mut_component(&entity)
+       if let Some(component) = self.colors.get_mut_component(&entity)
         {
             return component;
         }
         else {
-            panic!("failed to get component")
-        }
+            panic!("failed to get camera component")
+        } 
     }
-    */
         
 
-    pub fn query(&self,componenttype:ComponentType) -> Vec<Entity>
+    pub fn query(&self,componenttype:ComponentType) -> Vec<&Entity>
     {
         match componenttype{
             ComponentType::Transform => {
                 let mut val = Vec::new();
-                for i in 0..self.transforms.entity_to_index.len()
+                for i in &self.transforms.entities
                 {
-                    if let Some(index) =  &self.transforms.entity_to_index[i]
-                    {
-                        val.push(self.transforms.entities[*index].clone());
-                    }
-                    else {
-                        continue;
-                    }
+                    val.push(i);
                 }
                 return val;
             },         
             ComponentType::Hitbox=> {
                 let mut val = Vec::new();
-                for i in 0..self.hitboxes.entity_to_index.len()
+                for i in &self.hitboxes.entities
                 {
-                    if let Some(index) =  &self.hitboxes.entity_to_index[i]
-                    {
-                        val.push(self.hitboxes.entities[*index].clone());
-                    }
-                    else {
-                        continue;
-                    }
+                    val.push(i);
                 }
                 return val;
 
             },
             ComponentType::Render => {
                 let mut val = Vec::new();
-                for i in 0..self.renders.entity_to_index.len()
+                for i in &self.renders.entities
                 {
-                    if let Some(index) =  &self.renders.entity_to_index[i]
-                    {
-                        val.push(self.renders.entities[*index].clone());
-                    }
-                    else {
-                        continue;
-                    }
+                    val.push(i);
                 }
                 return val;
 
             },
             ComponentType::Camera =>{
                 let mut val = Vec::new();
-                for i in 0..self.cameras.entity_to_index.len()
+                for i in &self.cameras.entities
                 {
-                    if let Some(index) =  &self.cameras.entity_to_index[i]
-                    {
-                        val.push(self.cameras.entities[*index].clone());
-                    }
-                    else {
-                        continue;
-                    }
+                    val.push(i);
                 }
                 return val;
             }
-           
-
+            ComponentType::Color =>
+            {
+               let mut val = Vec::new();
+                for i in &self.colors.entities
+                {
+                    val.push(i);
+                }
+                return val; 
+            }        
         }
+
     }
     pub fn check_collision(&mut self,entity:&Entity,entities:&Vec<&Entity>,skip_entities_with_no_hitbox:bool) ->bool
     {
+        //get all 8 poisitons then find the smallest x y z values make a point with it then find the largest x y z values make a poinnt with it then compare to check rotates colisions.
         if let Some(hitbox1) = self.hitboxes.get_component(entity) && let Some(transform1) = self.transforms.get_mut_component(entity)
         {
-            let meshpos = applyrotation(vec2(0.5, -0.5), transform1.rotation.x);
-            let tr = vec3( meshpos.x*hitbox1.x + transform1.position.x,   meshpos.x*hitbox1.y + transform1.position.y,    meshpos.x*hitbox1.z + transform1.position.z);
-            let bl = vec3(meshpos.y*hitbox1.x + transform1.position.x,  meshpos.y*hitbox1.y + transform1.position.y,    meshpos.y*hitbox1.z + transform1.position.z);
+
+            let mut xyzvals = [vec3(0.0, 0.0, 0.0); 8];
+           
+        
+
+            let mut meshpos= vec3(0.5, 0.5,0.5);
+            meshpos.x *= hitbox1.length;
+            meshpos.y *= hitbox1.height;
+            meshpos.z *= hitbox1.width;
+            let mut meshpos2 = -meshpos;
+            applyrotation(&mut meshpos, &transform1.rotation);
+            applyrotation(&mut meshpos2, &transform1.rotation);
+            xyzvals[0] = vec3(meshpos.x  + transform1.position.x,meshpos.y + transform1.position.y,meshpos.z + transform1.position.z);   
+           
+            xyzvals[1] = vec3(meshpos2.x  + transform1.position.x, meshpos2.y + transform1.position.y, meshpos2.z+ transform1.position.z);
+
+            meshpos= vec3(0.5, -0.5,0.5);
+
+            meshpos.x *= hitbox1.length;
+            meshpos.y *= hitbox1.height;
+            meshpos.z *= hitbox1.width;
+
+            meshpos2 = -meshpos;
+
+            applyrotation(&mut meshpos, &transform1.rotation);
+            applyrotation(&mut meshpos2, &transform1.rotation);
+            xyzvals[2] = vec3(meshpos.x  + transform1.position.x,meshpos.y + transform1.position.y,meshpos.z + transform1.position.z);   
+           
+            xyzvals[3] = vec3(meshpos2.x  + transform1.position.x, meshpos2.y + transform1.position.y, meshpos2.z+ transform1.position.z);
+
+            meshpos= vec3(-0.5, 0.5,0.5);
+
+            meshpos.x *= hitbox1.length;
+            meshpos.y *= hitbox1.height;
+            meshpos.z *= hitbox1.width;
+
+            meshpos2 = -meshpos;
+
+            applyrotation(&mut meshpos, &transform1.rotation);
+            applyrotation(&mut meshpos2, &transform1.rotation);
+            xyzvals[4] = vec3(meshpos.x  + transform1.position.x,meshpos.y + transform1.position.y,meshpos.z + transform1.position.z);   
+           
+            xyzvals[5] = vec3(meshpos2.x  + transform1.position.x, meshpos2.y + transform1.position.y, meshpos2.z+ transform1.position.z);
+
+            meshpos= vec3(-0.5, -0.5,0.5);
+
+            meshpos.x *= hitbox1.length;
+            meshpos.y *= hitbox1.height;
+            meshpos.z *= hitbox1.width;
+
+            meshpos2 = -meshpos;
+
+            applyrotation(&mut meshpos, &transform1.rotation);
+            applyrotation(&mut meshpos2, &transform1.rotation);
+            xyzvals[6] = vec3(meshpos.x  + transform1.position.x,meshpos.y + transform1.position.y,meshpos.z + transform1.position.z);   
+           
+            xyzvals[7] = vec3(meshpos2.x  + transform1.position.x, meshpos2.y + transform1.position.y, meshpos2.z+ transform1.position.z);
+            
+            let mut tr = xyzvals[0];
+            let mut bl = xyzvals[0];
+            for i in 0..xyzvals.len()
+            {
+                if xyzvals[i].x > tr.x
+                {
+                    tr.x = xyzvals[i].x;
+                }
+                if xyzvals[i].y > tr.y
+                {
+                    tr.y = xyzvals[i].y;
+                }
+                if xyzvals[i].z > tr.z
+                {
+                    tr.z = xyzvals[i].z;
+                }
+
+                if xyzvals[i].x < bl.x
+                {
+                    bl.x = xyzvals[i].x;
+                }
+                if xyzvals[i].y < bl.y
+                {
+                    bl.y = xyzvals[i].y;
+                }
+                if xyzvals[i].z < bl.z
+                {
+                    bl.z = xyzvals[i].z;
+                }
+            }
+            
+            
+            
             for i in 0..entities.len(){
                 if let Some(hitbox2) = self.hitboxes.get_mut_component(&entities[i]) && let Some(transform2) = self.transforms.get_mut_component(&entities[i])
                 {
-                    let meshpos2 = applyrotation(vec2(0.5, -0.5), transform2.rotation.x);
-                    let tr1 = vec3( meshpos2.x*hitbox2.x + transform2.position.x,   meshpos2.x*hitbox2.y + transform2.position.y,    meshpos2.x*hitbox2.z + transform2.position.z);
-                    let bl1 = vec3(meshpos2.y*hitbox2.x + transform2.position.x,  meshpos2.y*hitbox2.y + transform2.position.y,    meshpos2.y*hitbox2.z + transform2.position.z);
+                    
+                    meshpos= vec3(0.5, 0.5,0.5);
+                    meshpos.x *= hitbox2.length;
+                    meshpos.y *= hitbox2.height;
+                    meshpos.z *= hitbox2.width;
+                    meshpos2 = -meshpos;
+                    applyrotation(&mut meshpos, &transform2.rotation);
+                    applyrotation(&mut meshpos2, &transform2.rotation);
+                    xyzvals[0] = vec3(meshpos.x  + transform2.position.x,meshpos.y + transform2.position.y,meshpos.z + transform2.position.z);   
+           
+                    xyzvals[1] = vec3(meshpos2.x  + transform2.position.x, meshpos2.y + transform2.position.y, meshpos2.z+ transform2.position.z);
+
+                    meshpos= vec3(0.5, -0.5,0.5);
+
+                    meshpos.x *= hitbox2.length;
+                    meshpos.y *= hitbox2.height;
+                    meshpos.z *= hitbox2.width;
+
+                    meshpos2 = -meshpos;
+
+                    applyrotation(&mut meshpos, &transform2.rotation);
+                    applyrotation(&mut meshpos2, &transform2.rotation);
+                    xyzvals[2] = vec3(meshpos.x  + transform2.position.x,meshpos.y + transform2.position.y,meshpos.z + transform2.position.z);   
+           
+                    xyzvals[3] = vec3(meshpos2.x  + transform2.position.x, meshpos2.y + transform2.position.y, meshpos2.z+ transform2.position.z);
+
+                    meshpos= vec3(-0.5, 0.5,0.5);
+
+                    meshpos.x *= hitbox2.length;
+                    meshpos.y *= hitbox2.height;
+                    meshpos.z *= hitbox2.width;
+
+                    meshpos2 = -meshpos;
+
+                    applyrotation(&mut meshpos, &transform2.rotation);
+                    applyrotation(&mut meshpos2, &transform2.rotation);
+                    xyzvals[4] = vec3(meshpos.x  + transform2.position.x,meshpos.y + transform2.position.y,meshpos.z + transform2.position.z);   
+           
+                    xyzvals[5] = vec3(meshpos2.x  + transform2.position.x, meshpos2.y + transform2.position.y, meshpos2.z+ transform2.position.z);
+
+                    meshpos= vec3(-0.5, -0.5,0.5);
+
+                    meshpos.x *= hitbox2.length;
+                    meshpos.y *= hitbox2.height;
+                    meshpos.z *= hitbox2.width;
+
+                    meshpos2 = -meshpos;
+
+                    applyrotation(&mut meshpos, &transform2.rotation);
+                    applyrotation(&mut meshpos2, &transform2.rotation);
+                    xyzvals[6] = vec3(meshpos.x  + transform2.position.x,meshpos.y + transform2.position.y,meshpos.z + transform2.position.z);   
+           
+                    xyzvals[7] = vec3(meshpos2.x  + transform2.position.x, meshpos2.y + transform2.position.y, meshpos2.z+ transform2.position.z);
+            
+                    let mut tr1 = xyzvals[0];
+                    let mut bl1 = xyzvals[0];
+                    for i in 0..xyzvals.len()
+                    {
+                        if xyzvals[i].x > tr1.x
+                        {
+                            tr1.x = xyzvals[i].x;
+                        }
+                        if xyzvals[i].y > tr1.y
+                        {
+                            tr1.y = xyzvals[i].y;
+                        }
+                        if xyzvals[i].z > tr1.z
+                        {
+                            tr1.z = xyzvals[i].z;
+                        }
+
+                        if xyzvals[i].x < bl1.x
+                        {
+                            bl1.x = xyzvals[i].x;
+                        }
+                        if xyzvals[i].y < bl1.y
+                        {
+                            bl1.y = xyzvals[i].y;
+                        }
+                        if xyzvals[i].z < bl1.z
+                        {
+                            bl1.z = xyzvals[i].z;
+                        }
+                    
+                    }
+            
                     if  (bl.x <= tr1.x && bl1.x <= tr.x) &&  (bl.y <= tr1.y && bl1.y <= tr.y) && (bl.z <= tr1.z && bl1.z <= tr.z)
                     {
                         return true;
@@ -581,28 +893,75 @@ impl World
                     continue;
                 }
                 else {
-                    panic!("comparison object to check collisions has no hitbox compononent and skipping objects with no hitbox is not enabled")
+                    panic!("[Program Error] comparison object to check collisions has no hitbox compononent and skipping objects with no hitbox is not enabled")
                 } 
             }
             return false;
         }
         else {
-            panic!("main object has no hitbox component failure to check collision");
+            panic!("[Program Error] main object has no hitbox component failure to check collision");
         }
 
     }
     
+    
 }
 
-pub fn applyrotation(pos:Vec2,angle:f32) ->Vec2
+
+pub fn applyrotation(pos:&mut Vec3,rotation:&Vec3)
 {
-    let angle = f32::to_radians(angle);
+    if rotation.x != 0.0 && pos.x != 0.0
+    {
+        rotatex(pos, &rotation.x);
+    }
+    if rotation.y  != 0.0 && pos.y != 0.0
+    {
+        rotatey(pos, &rotation.y);
+    }
+    if rotation.z != 0.0 && pos.z != 0.0
+    {
+        rotatez(pos, &rotation.z);
+    }
+     
+}
+
+fn rotatez(pos:&mut Vec3,rot:&f32) 
+{
+    let angle = f32::to_radians(*rot);
+    let  s = f32::sin(angle);
+    let  c = f32::cos(angle);
+    *pos = glam::mat3(
+    vec3(c, -s, 0.0),
+    vec3(s,  c, 0.0),
+   vec3(0.0,  0.0, 1.0)
+    ) **pos;
+
+}
+fn rotatey(pos:&mut Vec3,rot:&f32) 
+{
+    let angle = f32::to_radians(*rot);
     let s = f32::sin(angle);
     let c = f32::cos(angle);
-    let x = glam::Mat2::from_cols(vec2(c, -s),vec2(s ,c)) *pos;
-    return x;
-}
+    *pos = glam::mat3(
+   vec3( c, 0.0, s,),
+    vec3(0.0,  1.0, 0.0),
+    vec3( -s,  0.0, c),
+    ) **pos;
 
+}
+fn rotatex(pos:&mut Vec3,rot:&f32) 
+{
+    let angle = f32::to_radians(*rot);
+    let s = f32::sin(angle);
+    let c = f32::cos(angle);
+    *pos = glam::mat3(
+    vec3(1.0,  0.0, 0.0,),
+    vec3(0.0,  c,   -s,),
+    vec3(0.0,  s,    c)
+            
+    ) * *pos;
+
+}
 
 /*two object collision
 

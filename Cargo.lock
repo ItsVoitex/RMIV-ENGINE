@@ -3,13 +3,6 @@
 version = 4
 
 [[package]]
-name = "Platformer"
-version = "0.1.0"
-dependencies = [
- "rmiv-engine",
-]
-
-[[package]]
 name = "ZombieDash"
 version = "0.1.0"
 dependencies = [

@@ -2,6 +2,57 @@
 
 **RMIV Engine** is a work-in-progress game engine written in Rust using OpenGL. 
 
+**Update 2**
+```sh
+There have been updates to the following systems. 
+AssetManager,WindowManager,Platform,Mesh,World,Renderer and shaders.
+there are more precise collision detection ,fullscreen issues are fixed, 
+lots of optimisations, all axis rotation and many more.
+```
+
+# Notes
+> rendering and game ticking isolation will be implemented when rendering can be separated to another thread.
+
+> issues with timing on windows which causes inconsistent fps and tickrate due to thread sleep issues which will hopefully be fixed when a solituion for cpu cycle limiting is implemented.
+
+# AssetManager
+> more precise error messages when errors occur during asset loading/creation
+
+# Platform/WindowManager
+> fixed issues related to window relocation after full-screening the program by retraining the original window positions before fullscreen for platforms other than wayland which does not support setting window positions.
+
+> implemented mouse cursor position translation to normalized coordinates to allow for future camera manipulation with the mouse and accurate clicking
+
+> more precise error messages when errors occur during window creation and input handling
+
+# World
+> added the Color component which is a multiplier for color for the whole entity it uses values from 0-255 for red green blue values
+
+> fixed bug in which after entity creation and calling the add component function the old entity data was overwritten due to no checks on existing entities during creation
+
+> optimizations to reduce memory consumption by editing the renders snapshot of entities which have the required components for rendering instead of creating a new vector or pointers every time
+
+> also more precise error messages when errors occur during collision checks and components requests
+
+> finally precise hitbox detentions have been implemented to account for all axis rotation of an object by calculating their vertices after rotation and using the largest and smallest xyz values for bound checking
+
+
+
+# Mesh
+> implemented the following mesh templates cuboid, texturelesscube (meshes which use a solid color and no textures),square base pyramid and triangular based pyramid.
+
+
+# Renderer
+> now makes use of snapshots of entities from world to render interdependently from world.this is to optimise for memory and allow for multi-threading in the future
+
+> render implements the debug option during creation which allows for the rendering of hitboxes to allow for visualisation of their size.
+
+# Shader
+> All axis rotation is now supported through the the transform component in its rotation property.
+> the color multiplier has also been added.
+> finally back face culling of faces that are not visible to the camera are added for example the inner faces of a cube.
+
+
 **Update 1**
 ```sh
 There have been updates to the following systems. Asset Manager, Window Manager(including platform), World and 3D implementation.

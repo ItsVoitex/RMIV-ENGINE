@@ -8,7 +8,7 @@ use glfw::{Context, GlfwReceiver,WindowEvent};
 
 
 
-#[derive(Clone, Copy,PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug,)]
 pub struct  WindowHandle
 {
     pub id:u32,
@@ -41,15 +41,16 @@ pub struct WindowInstance
     events:GlfwReceiver<(f64,WindowEvent)>,
     delta_time:f32,
     last_time:f64,
-    pub frame_buffer:(i32,i32),
     pub windinfo:WindowInfo,
     pub frameinfo:FrameInfo
     
 }
+
 pub struct WindowInfo
 {
-    oldwidth:i32,
-    oldheight:i32,
+    olddimensions:(i32,i32),
+    pub frame_buffer:(i32,i32),
+    oldpositions:(i32,i32),
     is_fullscreen:bool,
     is_pressed:bool,
     pub is_primary:bool,
@@ -59,8 +60,8 @@ pub struct FrameInfo
 {
     pub targetfps:i32,
     pub shouldrender:bool,
-    last_time:f64,
-    last_time2:f64,
+    last_frame:f64,
+    last_second:f64,
     pub fps:i32,
 }
 impl WindowStorage
@@ -71,55 +72,43 @@ impl WindowStorage
     }
     pub fn get_window(&self,handle:&WindowHandle,fail_on_errors:bool) -> Result<&WindowInstance,&str>
     {
-        if !fail_on_errors
+        if let Some(index) = self.window_to_index[handle.id as usize]
         {
-            if let Some(index) = self.window_to_index[handle.id as usize]
+            if self.handles[index] == *handle
             {
-                if self.handles[index] == *handle
-                {
-                    return Ok(&self.windows[index]);
-                }
-                return Err("invalid handle may be expired");
+                return Ok(&self.windows[index]);
             }
-            return Err("no window found");
-        }
-        else {
-            if let Some(index) = self.window_to_index[handle.id as usize]
+            if fail_on_errors
             {
-                if self.handles[index] == *handle
-                {
-                    return Ok(&self.windows[index]);
-                }
-                panic!("handle is expired");
+                panic!("[Program Error] failed to get window due to potentially expired entity handle")
             }
-            panic!("failed to get index");
+            return Err("[Program Error] failed to get window due to potentially expired entity handle");
         }
+        if fail_on_errors
+        {
+            panic!("[Program Error] failed to get window either due to non existence or it has been closed")
+        }
+        return Err("[Program Error] failed to get window either due to non existence or it has been closed");
     }
     pub fn get_mut_window(&mut self,handle:&WindowHandle,fail_on_errors:bool) -> Result<&mut WindowInstance,&str>
     {
-        if !fail_on_errors
+        if let Some(index) = self.window_to_index[handle.id as usize]
         {
-            if let Some(index) = self.window_to_index[handle.id as usize]
+            if self.handles[index] == *handle
             {
-                if self.handles[index] == *handle
-                {
-                    return Ok(&mut self.windows[index]);
-                }
-                return Err("invalid handle may be expired");
+                return Ok(&mut self.windows[index]);
             }
-            return Err("no window found");
-        }
-        else {
-            if let Some(index) = self.window_to_index[handle.id as usize]
+            if fail_on_errors
             {
-                if self.handles[index] == *handle
-                {
-                    return Ok(&mut self.windows[index]);
-                }
-                panic!("handle is expired");
+                panic!("[Program Error] failed to get window due to potentially expired entity handle")
             }
-            panic!("failed to get index");
+            return Err("[Program Error] failed to get window due to potentially expired entity handle");
         }
+        if fail_on_errors
+        {
+            panic!("[Program Error] failed to get window either due to non existence or it has been closed")
+        }
+        return Err("[Program Error] failed to get window either due to non existence or it has been closed");
     }
            
     pub fn should_close(&mut self) ->bool
@@ -174,10 +163,14 @@ impl WindowManager
             _mainwindow = WindowInstance::create_shared(windowdata.dimensions.0, windowdata.dimensions.1, &windowdata.title, runtime,&wind,windowdata.targetfps);
         }
         else {
-            if !windowdata.is_primary && windowdata.windowref.is_some()
+            if !windowdata.is_primary && let Some(windowref) = windowdata.windowref
             {
-                let wind = self.storage.get_mut_window(&windowdata.windowref.unwrap(),true).unwrap();
-                _mainwindow = WindowInstance::create_shared(windowdata.dimensions.0, windowdata.dimensions.1, &windowdata.title, runtime,wind,windowdata.targetfps);
+                let wind = self.storage.get_mut_window(&windowref,true);
+                match wind {
+                    Ok(wind) => _mainwindow = WindowInstance::create_shared(windowdata.dimensions.0, windowdata.dimensions.1, &windowdata.title, runtime,wind,windowdata.targetfps),
+                    Err(error) => panic!("{}", error)
+                }
+                
             }
             else{
                 if windowdata.is_primary 
@@ -187,7 +180,7 @@ impl WindowManager
                 }
                 else
                 {
-                    panic!("failed to create window missing windowdata")
+                    panic!("[Program Error] failed to create window due missing or invalid windowdata for creation")
                 } 
             }
         }
@@ -210,25 +203,17 @@ impl WindowManager
         }
 
     }
-    pub fn update_events(&mut self,runtime:&mut glfw::Glfw)
+    pub fn update_events(&mut self,runtime:&mut glfw::Glfw,is_wayland:&bool)
     {
-        let mut lowest = 1.0;
+        
         let mut remove_queue: Vec<WindowHandle> = Vec::new();
         for i in 0..self.storage.windows.len()
         {   
             let wind = &mut self.storage.windows[i];
+            wind.limitfps(runtime);
+            wind.toggle_fullscreen(is_wayland);
+    
             
-            wind.toggle_fullscreen();
-            let val = wind.limitfps(runtime);
-            if lowest <= 0.0
-            {
-                lowest = val
-            }
-            
-            if lowest > val
-            {
-                lowest = val;
-            }
             if wind.process_events() || wind.should_close()
             {
                 remove_queue.push(self.storage.handles[i].clone());
@@ -247,9 +232,10 @@ impl WindowManager
 
             }
         }
-        runtime.wait_events_timeout(lowest);
+       
         
     }
+    
    
 }
 
@@ -269,12 +255,22 @@ impl WindowInstance
                     gl::Enable(gl::BLEND);
                     gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
                     gl::Enable(gl::DEPTH_TEST);
+
+                    gl::Enable(gl::CULL_FACE);
+                    gl::CullFace(gl::FRONT_FACE);
+                    gl::FrontFace(gl::CCW);
                     
                 }
-                return WindowInstance { window, events: (_events), delta_time:0.0,last_time:0.0,frame_buffer:(width,height),windinfo:WindowInfo{oldwidth:width ,oldheight:height,is_fullscreen:false,is_pressed:false,is_primary:false},frameinfo:FrameInfo { targetfps, shouldrender: true, last_time: 0.0, last_time2: 0.0, fps: 0 }};    
+                return WindowInstance { 
+                    window,
+                    events: (_events), 
+                    delta_time:0.0,
+                    last_time:0.0,
+                    windinfo:WindowInfo{frame_buffer:(width,height),olddimensions:(width,height),oldpositions:(0,0),is_fullscreen:false,is_pressed:false, is_primary:false},
+                    frameinfo:FrameInfo { targetfps, shouldrender: true, last_frame: 0.0, last_second: 0.0,fps: 0 }};    
             }
             else {
-                panic!("failed to create shared window");
+                panic!("[Fatal Error] failed to create shared window due to internal window creation libary error possibly an issue with the window instance");
             }
     }
     pub fn create_primary(runtime:&mut Glfw,width:u32,height:u32,window_title:&str,targetfps:i32) -> WindowInstance
@@ -297,6 +293,10 @@ impl WindowInstance
             gl::Enable(gl::BLEND);
             gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
             gl::Enable(gl::DEPTH_TEST);
+
+            gl::Enable(gl::CULL_FACE);
+            gl::CullFace(gl::FRONT_FACE);
+            gl::FrontFace(gl::CCW);
         }
 
         WindowInstance  { 
@@ -304,14 +304,13 @@ impl WindowInstance
             events: (_events), 
             delta_time:0.0,
             last_time:0.0,
-            frame_buffer:(width,height),
-            windinfo:WindowInfo{oldwidth:width ,oldheight:height,is_fullscreen:false,is_pressed:false,is_primary:true},
-            frameinfo:FrameInfo { targetfps, shouldrender: true, last_time: 0.0, last_time2: 0.0, fps: 0 },
+            windinfo:WindowInfo{frame_buffer:(width,height) ,olddimensions:(width,height),oldpositions:(0,0),is_fullscreen:false,is_pressed:false,is_primary:true},
+            frameinfo:FrameInfo { targetfps, shouldrender: true, last_frame: 0.0, last_second: 0.0, fps: 0 },
     
         }
     }
     
-    //calculates frame time for the specific window
+ 
     pub fn delta_time(&mut self,current_time:f64) ->f32
     {
         self.delta_time = (current_time - self.last_time) as f32;
@@ -333,12 +332,40 @@ impl WindowInstance
                     gl::Enable(gl::BLEND);
                     gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
                     gl::Enable(gl::DEPTH_TEST);
+
+                    gl::Enable(gl::CULL_FACE);
+                    gl::CullFace(gl::FRONT_FACE);
+                    gl::FrontFace(gl::CCW);
                     
                 }
-                return WindowInstance{ window, events: (_events), delta_time:0.0,last_time:0.0,frame_buffer:(width,height),windinfo:WindowInfo{oldwidth:width ,oldheight:height,is_fullscreen:false,is_pressed:false,is_primary:false},frameinfo:FrameInfo { targetfps, shouldrender: true, last_time: 0.0, last_time2: 0.0, fps: 0 }};    
+                return WindowInstance
+                { 
+                    window, 
+                    events: (_events), 
+                    delta_time:0.0,
+                    last_time:0.0,
+                    
+                    windinfo:WindowInfo
+                    {
+                        olddimensions:(width,height),
+                        frame_buffer:(width,height),
+                        oldpositions:(0,0),
+                        is_fullscreen:false,
+                        is_pressed:false,
+                        is_primary:false
+                    },
+                    frameinfo:FrameInfo 
+                    {
+                        targetfps,
+                        shouldrender: true,
+                        last_frame: 0.0,
+                        last_second: 0.0,
+                        fps: 0 
+                    }
+                };    
             }
             else {
-                panic!("failed to create shared window");
+                panic!("[Fatal Error] failed to create shared window due to internal window creation libary error possibly an issue with the window instance");
             }
         
     }
@@ -350,21 +377,21 @@ impl WindowInstance
         let frametime = 1.0/self.frameinfo.targetfps as f64; 
         let current_time = runtime.get_time();
         let mut wait_time = 0.0;
-        if current_time - self.frameinfo.last_time > frametime
+        if current_time - self.frameinfo.last_frame > frametime
         {
             self.frameinfo.shouldrender = true;
-            self.frameinfo.last_time = current_time;
+            self.frameinfo.last_frame = current_time;
         }
         else {
             self.frameinfo.shouldrender = false;
-            wait_time = frametime - (current_time - self.frameinfo.last_time) ;
+            wait_time = frametime - (current_time - self.frameinfo.last_frame) ;
         }
         
-        if current_time - self.frameinfo.last_time2 > 1.0
+        if current_time - self.frameinfo.last_second > 1.0
         {
             println!("{} fps",self.frameinfo.fps);
             self.frameinfo.fps = 0;
-            self.frameinfo.last_time2 = current_time;       
+            self.frameinfo.last_second = current_time;       
         }
         return wait_time;
 
@@ -375,7 +402,6 @@ impl WindowInstance
         
 
         let mut should_remove = false;
-    
         for (_,events) in glfw::flush_messages(&self.events)
         {
             match events {
@@ -385,8 +411,8 @@ impl WindowInstance
                 {
                     if !self.window.should_close() && !should_remove
                     {
-                        self.frame_buffer.0 = width;
-                        self.frame_buffer.1 = height;
+                        self.windinfo.frame_buffer.0 = width;
+                        self.windinfo.frame_buffer.1 = height;
                     }
                 },
                 _ => {}
@@ -402,21 +428,36 @@ impl WindowInstance
     {
         self.window.set_should_close(true);
     }
-    pub fn toggle_fullscreen(&mut self)
+    pub fn toggle_fullscreen(&mut self,is_wayland:&bool)
     {
         unsafe {
-            let monitor = glfw::ffi::glfwGetPrimaryMonitor();
-            let mode= glfw::ffi::glfwGetVideoMode(monitor);
-           
             
             let pressed = glfw::ffi::GLFW_PRESS == glfw::ffi::glfwGetKey(self.window.window_ptr(),glfw::ffi::GLFW_KEY_F11 as std::os::raw::c_int);
             if pressed && self.windinfo.is_fullscreen == true && !self.windinfo.is_pressed
             {
-                glfw::ffi::glfwSetWindowMonitor(self.window.window_ptr(),std::ptr::null_mut(), (*mode).width-self.windinfo.oldwidth / 2, (*mode).height-self.windinfo.oldheight / 2, self.windinfo.oldwidth, self.windinfo.oldheight, 0);
+                
+                glfw::ffi::glfwSetWindowMonitor(self.window.window_ptr(),std::ptr::null_mut(), self.windinfo.oldpositions.0, self.windinfo.oldpositions.1 , self.windinfo.olddimensions.0, self.windinfo.olddimensions.1, 0);
                 self.windinfo.is_fullscreen = false;
   
             }
             else {if pressed && self.windinfo.is_fullscreen == false && !self.windinfo.is_pressed {
+
+                let monitor = glfw::ffi::glfwGetPrimaryMonitor();
+                let mode= glfw::ffi::glfwGetVideoMode(monitor);
+                if !is_wayland
+                {
+                    let mut xpos:std::os::raw::c_int = 0;
+                    let mut ypos:std::os::raw::c_int = 0;
+                    glfw::ffi::glfwGetWindowPos(self.window.window_ptr(), &mut xpos,&mut ypos);
+                    self.windinfo.oldpositions = (xpos,ypos);
+                }
+                else {
+                    self.windinfo.oldpositions = (0,0);
+                }
+                let mut width:std::os::raw::c_int = 0;
+                let mut height:std::os::raw::c_int = 0;
+                glfw::ffi::glfwGetWindowSize(self.window.window_ptr(), &mut width, &mut height);
+                self.windinfo.olddimensions = (width,height);
                 glfw::ffi::glfwSetWindowMonitor(self.window.window_ptr(), monitor, 0, 0, (*mode).width, (*mode).height, (*mode).refreshRate);
                 self.windinfo.is_fullscreen = true;
      
@@ -426,6 +467,7 @@ impl WindowInstance
         }
         
     }
+
     pub fn make_current(&mut self)
     {
         self.window.make_current()
@@ -435,7 +477,7 @@ impl WindowInstance
         self.make_current();
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-            gl::Viewport(0, 0, self.frame_buffer.0, self.frame_buffer.1);
+            gl::Viewport(0, 0, self.windinfo.frame_buffer.0, self.windinfo.frame_buffer.1);
         }
         
         

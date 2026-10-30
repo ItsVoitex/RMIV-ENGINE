@@ -23,13 +23,13 @@ pub struct Game
     player:Option<Player>,
     title:Entity,
     choice:Entity,
-    over:Entity,
     state:i32,
     getkey:bool,
     spike_id:AssetHandle,
     scene:Option<Scene>,
     diff:Entity,
-    mesh:AssetHandle
+    mesh:AssetHandle,
+    floor:f32,
 
 
 }
@@ -39,42 +39,58 @@ fn startup(assets:&mut AssetManager,world:&mut World,platform:&mut Platform) ->G
     let window = platform.create_window(Window{
         title:"zombiedash".to_string(),
         dimensions:(1920, 1080),
-        targetfps:240,
+        targetfps:200,
         is_primary:false,
         windowref:None
     });
     let shader = assets.load(CustomShader::defaultshader());
     let defaultmesh =  assets.load(Mesh::rectangle(1.0, 1.0,1.0));
     let cube = assets.load(Mesh::cube(1.0, 1.0));
-    let pyramid = assets.load(Mesh::pyramid(1.0, 1.0));
-    /* 
-    world.spawn( (
+    let pyramid = assets.load(Mesh::square_base_pyramid(1.0, 1.0));
+    
+
+
+
+    let back = world.spawn( (
     Render{
         texture_id:Some(assets.load(Texture{path:"Assets/textures/backround.png".to_string()})),
         shader_id:Some(shader),
         mesh_id:defaultmesh,
         renderlayers:(0,1)
     }, Transform{
-        scale:vec3(1920.0, 1080.0, -1.0),
-        position:vec3(0.0, 0.0, -1.5),
+        scale:vec3(5.0, 3.0, 0.0),
+        position:vec3(0.0, 0.1, -0.9),
         rotation: vec3(0.0,0.0,0.0), 
     }
     ));
-    */
-    
-    world.spawn( (
+
+    let back2 = world.spawn( (
     Render{
-        texture_id:Some(assets.load(Texture{path:"Assets/textures/backround.png".to_string()})),
+        texture_id:Some(assets.load(Texture{path:"Assets/textures/backround2.png".to_string()})),
         shader_id:Some(shader),
         mesh_id:defaultmesh,
         renderlayers:(0,1)
     }, Transform{
-        scale:vec3(3420.0*1.5, 2560.0*1.5, -1.0),
-        position:vec3(0.0, 500.0, -1.5),
+        scale:vec3(6.0, 3.0, 0.0),
+        position:vec3(0.0, 0.0, -0.8),
         rotation: vec3(0.0,0.0,0.0), 
     }
     ));
+    let back1 = world.spawn( (
+    Render{
+        texture_id:Some(assets.load(Texture{path:"Assets/textures/backround2.png".to_string()})),
+        shader_id:Some(shader),
+        mesh_id:defaultmesh,
+        renderlayers:(0,1)
+    }, Transform{
+        scale:vec3(6.0, 3.0, 0.0),
+        position:vec3(5.4, 0.0, -0.8),
+        rotation: vec3(0.0,0.0,0.0), 
+    }
+    ));
+
     
+  
     //
     let diff = world.spawn((Render{
         texture_id:Some(assets.load(Texture{path:"Assets/textures/difficulty.png".to_string()})),
@@ -83,22 +99,20 @@ fn startup(assets:&mut AssetManager,world:&mut World,platform:&mut Platform) ->G
         renderlayers:(0,1)
     }, 
     Transform{
-        scale:vec3(1920.0,500.0,-0.6,),
-        position:vec3(0.0, 0.0, 0.0),
+        scale:vec3(4.0,1.0,0.0,),
+        position:vec3(0.0, 0.0, -0.6),
         rotation: vec3(0.0,0.0,0.0), 
     }
     ));
 
-
+    let floor:f32 = -1.03;
     let player = Player::create(
         &assets.load(Texture{path:"Assets/textures/zombie.png".to_string()}),
-        96.0, 84.0, -0.1,
-        world,&cube
+       0.23 , 0.21, 0.23,
+        world,&cube,floor 
     );
-   
-    let transform = world.get_transfom(&player.entity);
-    transform.position.x = -400.0;
-    transform.position.y = -500.0;
+
+
     
     
     
@@ -111,8 +125,8 @@ fn startup(assets:&mut AssetManager,world:&mut World,platform:&mut Platform) ->G
         renderlayers:(0,1)
     }, 
     Transform{
-        scale:vec3(1200.0, 700.0, -0.6),
-        position:vec3(0.0, 0.0, 0.0),
+        scale:vec3(2.8,1.5,0.0,),
+        position:vec3(0.0, 0.0, -0.6),
         rotation: vec3(0.0,0.0,0.0), 
     }
     ));
@@ -126,41 +140,29 @@ fn startup(assets:&mut AssetManager,world:&mut World,platform:&mut Platform) ->G
         renderlayers:(0,0)
     }, 
     Transform{
-        scale:vec3(1920.0,300.0,-0.6,),
-        position:vec3(0.0, 0.0, 0.0),
+        scale:vec3(4.0,0.8,0.0),
+        position:vec3(0.0, 0.0, -0.6),
         rotation: vec3(0.0,0.0,0.0), 
     }
     ));
         
         
     
-    let over_id = assets.load(Texture{path:"Assets/textures/gameover.png".to_string()});
-    let over = world.spawn((Render{
-        texture_id:Some(over_id),
-        mesh_id:defaultmesh,
-        shader_id:Some(shader),
-        renderlayers:(0,0)
-    }, 
-    Transform{
-        scale:vec3(1920.0,500.0,-0.6,),
-        position:vec3(0.0, 0.0, 0.0),
-        rotation: vec3(0.0,0.0,0.0), 
-    }
-    ));
     
     
     
     
-    let mut scene1 = Scene::create();
+    let mut scene1 = Scene::create(floor,(back,back1,back2));
     scene1.checkleveldat();
     
 
 
 
     world.spawn(Camera {
-        position: vec3(-0.0, 0.0, -1.8),
+        position: vec3(-0.0, 0.0, -1.5),
         rotation:  vec3(0.0,0.0,0.0), 
         renderlayers: (1, 1),
+        fov:60.0,
         targetwindow: window.clone(),
         ..Camera::camera3d()
     });
@@ -173,13 +175,14 @@ fn startup(assets:&mut AssetManager,world:&mut World,platform:&mut Platform) ->G
         window, 
         speed,
          player: Some(player),
-          title, choice, over, 
+          title, choice, 
           state: 5, 
           getkey: false ,
           spike_id:assets.load(Texture{path:"Assets/textures/spike.png".to_string()}),
           scene:Some(scene1),
           diff,
-          mesh:pyramid
+          mesh:pyramid,
+          floor
     }
         
 }
@@ -208,6 +211,11 @@ fn update1(_assets:&mut AssetManager,world:&mut World,platform:&mut Platform,gam
         None =>return
         
     };
+    if game.state == 3
+    {
+        platform.close_window(game.window);
+        return;
+    }
     if game.state == 5
     {   scene1.checkleveldat();
         world.get_render(&game.title).renderlayers = (0,0);
@@ -216,21 +224,21 @@ fn update1(_assets:&mut AssetManager,world:&mut World,platform:&mut Platform,gam
 
         if platform.Key_is_pressed(&game.window, KeyCode::Num1)
         {
-            game.speed = 800.0;
+            game.speed = 2.0;
             diff.renderlayers = (0,0);
             world.get_render(&game.title).renderlayers= (1,1);
             game.state = 0;
         }
         else {if platform.Key_is_pressed(&game.window, KeyCode::Num2)
         {
-            game.speed = 1200.0;
+            game.speed = 3.0;
             diff.renderlayers = (0,0);
             world.get_render(&game.title).renderlayers= (1,1);
             game.state = 0;
         }
         else{if platform.Key_is_pressed(&game.window, KeyCode::Num3)
         {
-            game.speed = 1500.0;
+            game.speed = 4.0;
             diff.renderlayers = (0,0);
             world.get_render(&game.title).renderlayers = (1,1);
             game.state = 0;
@@ -238,26 +246,23 @@ fn update1(_assets:&mut AssetManager,world:&mut World,platform:&mut Platform,gam
         return;
     }
     
-    if game.state == 3
-    {
-        platform.close_window(game.window);
-        return;
-    }
+    
     if game.state == 0
     {
-        if platform.Key_is_pressed(&game.window,KeyCode::Space) 
-        {
-            game.getkey = true;
-        }
+        
+        
         let delta_time = platform.delta_time(&game.window);
             
         
-        if game.getkey{scene1.move_all(&delta_time,game.speed,world);}
+        if game.getkey{
+            scene1.move_all(&delta_time,game.speed,world);scene1.spawn_spikes(game.spike_id,world,&game.mesh);
+            player.moved(platform,world.get_transfom(&player.entity),&delta_time,&game.window,);
+            game.speed += 0.0001;
+        }
         
-        if game.getkey{player.moved(platform,world.get_transfom(&player.entity),&delta_time,&game.window,)};
+       
         
         
-        scene1.spawn_spikes(game.spike_id,world,&game.mesh);
 
         let temp = world.get_render(&game.title);
         if !game.getkey {
@@ -268,24 +273,18 @@ fn update1(_assets:&mut AssetManager,world:&mut World,platform:&mut Platform,gam
         }
 
         
-            
+        if platform.Key_is_pressed(&game.window,KeyCode::Space) 
+        {
+            game.getkey = true;
+        }
         if world.check_collision(&player.entity, &scene1.getobjects(), false)
         {
-            game.state = 1;
-        }
-
-    }
-
-    if game.state == 1 
-    {
-        let temp = world.get_render(&game.over);
-        temp.renderlayers = (1,1);
-        if platform.Key_is_pressed(&game.window, KeyCode::H)
-        {
-            temp.renderlayers = (5,5);
             game.state = 2;
         }
+
+        
     }
+
     if game.state == 2 
     {
         let temp = world.get_render(&game.choice);
@@ -297,15 +296,19 @@ fn update1(_assets:&mut AssetManager,world:&mut World,platform:&mut Platform,gam
             scene1.reset(world);
             game.getkey = false;
             let temp = world.get_transfom(&player.entity);
-            temp.position.x = -400.0;
-            temp.position.y = -500.0;
+            temp.position.x = -1.25;
+            temp.position.y = game.floor;
             temp.rotation =  vec3(0.0,0.0,0.0);
             player.rotationstate =  vec3(0.0,0.0,0.0);
             game.state = 5;
         }
+        
+        
+        
         if platform.Key_is_pressed(&game.window, KeyCode::N)
         {
             game.state = 3;
+            return;
         }
     }
 }
