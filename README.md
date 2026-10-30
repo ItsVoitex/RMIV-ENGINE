@@ -1,4 +1,6 @@
+<div align="center">
 # RMIV Engine
+</div>
 
 **RMIV Engine** is a work-in-progress game engine written in Rust using OpenGL. 
 
